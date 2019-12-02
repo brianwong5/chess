@@ -1,7 +1,7 @@
 #wrapper {
   display: grid;
-  width: 520px;
-  height: 520px;
+  width: 90vmin;
+  height: 90vmin;
   grid-template-columns: 1fr 16fr;
   grid-template-rows: 16fr 1fr;
 }
@@ -26,6 +26,7 @@
 
 #board {
   display: grid;
+  position: relative;
   grid-template: repeat(8, 1fr) / repeat(8, 1fr);
   border: 2px solid;
 }
@@ -41,3 +42,25 @@
 .dark {
   background-color: #7D8796;
 }
+
+img.piece {
+  width: 100%;
+}
+
+/* .rank1 {grid-row: 8;}
+.rank2 {grid-row: 7;}
+.rank3 {grid-row: 6;}
+.rank4 {grid-row: 5;}
+.rank5 {grid-row: 4;}
+.rank6 {grid-row: 3;}
+.rank7 {grid-row: 2;}
+.rank8 {grid-row: 1;}
+
+.filea {grid-column: 1;}
+.fileb {grid-column: 2;}
+.filec {grid-column: 3;}
+.filed {grid-column: 4;}
+.filee {grid-column: 5;}
+.filef {grid-column: 6;}
+.fileg {grid-column: 7;}
+.fileh {grid-column: 8;} */
