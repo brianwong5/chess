@@ -15,11 +15,10 @@
 - [ ] move generation
 - [ ] user input
 - [ ] pawn promotion
-- [ ] castle
-
 
 ## Extension
 - [ ] 50 moves
 - [ ] threefold rep
 - [ ] en passant
+- [ ] castle
 - [ ] undo
