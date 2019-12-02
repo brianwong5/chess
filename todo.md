@@ -1,13 +1,13 @@
 # Chess
 
 ## Core
-- [ ] GUI
-- [ ] board representation
+- [x] GUI
+- [x] board representation
 - [ ] points
 - [ ] record of game (list of moves)
 - [x] save and load fen
   - [ ] incorporate into gui
-- [ ] pieces
+- [x] pieces
 - [ ] move generation
 - [ ] user input
 - [ ] pawn promotion
