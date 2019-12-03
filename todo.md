@@ -8,7 +8,13 @@
 - [x] save and load fen
   - [ ] incorporate into gui
 - [x] pieces
-- [ ] move generation
+- [ ] move generation (from https://www.chessprogramming.org/Main_Page)
+  - [ ] search
+  - [ ] evaluation
+  - [ ] opening book
+  - [ ] endgame tablebases
+  - [ ] transposition table
+  - [ ] parallel search
 - [ ] user input
 - [ ] pawn promotion
 
