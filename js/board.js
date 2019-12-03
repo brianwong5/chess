@@ -1,6 +1,6 @@
 const ranks = ["1", "2", "3", "4", "5", "6", "7", "8"];
 const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
-const pieces = ["P","N","B","R","Q","K","p","n","b","r","q","k"];
+const pieces = ["P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"];
 
 // White: PNBRQK
 // Black: pnbrqk
@@ -115,29 +115,12 @@ const fenToObj = fen => {
   };
 }
 
-const objToFen = (obj) => {
+const objToFen = obj => {
   const [pieces, ...rest] = Object.values(obj)
   return [bitboardToFenPieces(pieces), ...rest].join(" ");
 }
 
-const printBoard = board => {
-  const pieces = bitboardToArr(board.pieces);
-  let output = "\n";
-  for (const rank of [...ranks].reverse()) {
-    output += rank + "  ";
-    for (const file of files) {
-      const tile = pieces[squareToIndex(`${file}${rank}`)];
-      output += ` ${tile !== " " ? tile : "."} `;
-    }
-    output += "\n";
-  }
-  output += `\n    ${files.join("  ")}\n\n`;
-  output += `Side: ${board.side}\n`;
-  output += `Castle: ${board.castle}\n`;
-  output += `En passant: ${board.enPas}\n`;
-
-  return output;
-}
+const validateFen = fen => {}
 
 class Board {
   constructor(fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {
@@ -201,5 +184,6 @@ module.exports = {
   arrToBitboard,
   bitboardToArr,
   fenToObj,
-  objToFen
+  objToFen,
+  validateFen
 };
