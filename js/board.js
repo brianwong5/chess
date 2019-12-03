@@ -28,19 +28,6 @@ const pieces = ["P","N","B","R","Q","K","p","n","b","r","q","k"];
 //
 // starting position:
 // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-class Board {
-  constructor() {
-    // pieces - needs encoding - 12 bitboards (array length 12 of numbers)
-    // active colour - boolean - true = white
-    // castling availability - string
-    // en passant target square - string
-    // halfmove clock - number
-    // fullmove number - number
-    this.enPas = "";
-    this.halfMove = 0;
-    this.fullMove = 1;
-  }
-}
 
 // LSF, or rank file mapping
 // string -> number
@@ -116,19 +103,42 @@ const bitboardToFenPieces = bitboard => arrToFenPieces(bitboardToArr(bitboard));
 
 const fenToObj = fen => {
   const [
-    pieces, colour, castle, enPas, halfMove, fullMove
+    pieces, side, castle, enPas, halfMove, fullMove
   ] = fen.split(" ");
   return {
     pieces: fenPiecesToBitboard(pieces),
-    colour,
+    side,
     castle,
     enPas,
-    halfMove: parseInt(halfMove),
-    fullMove: parseInt(fullMove)
+    halfMove: parseInt(halfMove) || 0,
+    fullMove: parseInt(fullMove) || 1
   };
 }
 
 const objToFen = (obj) => {
   const [pieces, ...rest] = Object.values(obj)
   return [bitboardToFenPieces(pieces), ...rest].join(" ");
+}
+
+const printBoard = (board) => {
+  const pieces = bitboardToArr(board.pieces);
+  let output = "";
+  for (const rank of [...ranks].reverse()) {
+    output += rank + "  ";
+    for (const file of files) {
+      const tile = pieces[squareToIndex(`${file}${rank}`)];
+      output += ` ${tile !== " " ? tile : "."} `;
+    }
+    output += "\n";
+  }
+  output += `\n    ${files.join("  ")}\n\n`;
+  output += `Side: ${board.side}\n`;
+  output += `Castle: ${board.castle}\n`;
+  output += `En passant: ${board.enPas}\n`;
+
+  return output;
+}
+
+if (typeof module !== "undefined") {
+  module.exports = Board;
 }

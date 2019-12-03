@@ -7,6 +7,7 @@ const pieceImages = ["wP","wN","wB","wR","wQ","wK","bP","bN","bB","bR","bQ","bK"
     return img;
   });
 const board = fenToObj("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
 const getImage = index => pieceImages[index].cloneNode();
 
 const squareToElement = (file, rank) =>
@@ -19,17 +20,23 @@ const elementToSquare = element => {
   return `${file}${rank}`;
 }
 
-const addPiece = (file, rank, piece) => squareToElement(file, rank).appendChild(piece);
 const removePiece = (file, rank) => squareToElement(file, rank).textContent = "";
-
-const loadBoard = board => board.pieces.forEach((x, i) => 
+const addPiece = (file, rank, piece) => {
+  piece.classList.add(`file${file}`, `rank${rank}`);
+  removePiece(file, rank);
+  squareToElement(file, rank).appendChild(piece);
+}
+const resetPieces = () => [...boardGUI.children].forEach(x => x.textContent = "");
+const loadBoard = board => {
+  resetPieces();
+  board.pieces.forEach((x, i) => 
   bitboardToIndicies(x).forEach(index => {
     const img = getImage(i);
     const file = indexToFile(index);
     const rank = indexToRank(index);
-    img.classList.add(`file${file}`, `rank${rank}`);
     addPiece(file, rank, img)
   }));
+}
 
 for (let col = 0; col < 8; ++col) {
   for (let row = 0; row < 8; ++row) {
@@ -44,3 +51,4 @@ for (let col = 0; col < 8; ++col) {
 }
 
 loadBoard(board);
+console.log(printBoard(board));
