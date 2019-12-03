@@ -64,7 +64,7 @@ const arrToFenPieces = arr => {
   for (let i = 0; i < formatted.length; ++i) {
     if (formatted[i] === " ") {
       ++emptyCount;
-      if (formatted[i] !== " " || files[i & 7] === "h") {
+      if (formatted[i + 1] !== " " || files[i & 7] === "h") {
         output += emptyCount;
         emptyCount = 0;
       }
@@ -120,9 +120,9 @@ const objToFen = (obj) => {
   return [bitboardToFenPieces(pieces), ...rest].join(" ");
 }
 
-const printBoard = (board) => {
+const printBoard = board => {
   const pieces = bitboardToArr(board.pieces);
-  let output = "";
+  let output = "\n";
   for (const rank of [...ranks].reverse()) {
     output += rank + "  ";
     for (const file of files) {
@@ -139,6 +139,21 @@ const printBoard = (board) => {
   return output;
 }
 
-if (typeof module !== "undefined") {
-  module.exports = Board;
+// Keeps track of board state ONLY
+// Does not handle move legality
+class Board {
+  constructor(fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {
+    this.pos = fenToObj(fen);
+  }
+  ascii() {
+    return printBoard(this.pos);
+  }
+  fen() {
+    return objToFen(this.pos);
+  }
+  load(fen) {
+    this.pos = fenToObj(fen);
+  }
 }
+
+module.exports = Board;
