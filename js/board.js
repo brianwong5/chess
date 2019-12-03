@@ -42,8 +42,8 @@ const indexToSquare = index => indexToFile(index) + indexToRank(index);
 
 const bitboardToIndicies = bitboard => {
   const output = [];
-  for (let i = 0n; i < bitboard.toString(2).length; ++i) {
-    if (((bitboard >> i) & 1n) === 1n) {
+  for (let i = BigInt(0); i < bitboard.toString(2).length; ++i) {
+    if (((bitboard >> i) & BigInt(1)) === BigInt(1)) {
       output.push(Number(i));
     }
   }
@@ -80,10 +80,10 @@ const arrToFenPieces = arr => {
 }
 
 const arrToBitboard = array => {
-  const bitboard = pieces.map(() => 0n);
+  const bitboard = pieces.map(() => BigInt(0));
   array.forEach((x, i) => {
     if (pieces.includes(x)) {
-      bitboard[pieces.indexOf(x)] |= 1n << BigInt(i);
+      bitboard[pieces.indexOf(x)] |= BigInt(1) << BigInt(i);
     }
   });
   return bitboard;
