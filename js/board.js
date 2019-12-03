@@ -139,14 +139,30 @@ const printBoard = board => {
   return output;
 }
 
-// Keeps track of board state ONLY
-// Does not handle move legality
 class Board {
   constructor(fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {
     this.pos = fenToObj(fen);
   }
   ascii() {
-    return printBoard(this.pos);
+    const pieces = this.array();
+    let output = "\n";
+    for (const rank of [...ranks].reverse()) {
+      output += rank + "  ";
+      for (const file of files) {
+        const tile = pieces[squareToIndex(`${file}${rank}`)];
+        output += ` ${tile !== " " ? tile : "."} `;
+      }
+      output += "\n";
+    }
+    output += `\n    ${files.join("  ")}\n\n`;
+    output += `Side: ${this.side}\n`;
+    output += `Castle: ${this.castle}\n`;
+    output += `En passant: ${this.enPas}\n`;
+
+    return output;
+  }
+  array() {
+    return bitboardToArr(this.pos.pieces);
   }
   fen() {
     return objToFen(this.pos);
@@ -154,6 +170,36 @@ class Board {
   load(fen) {
     this.pos = fenToObj(fen);
   }
+  side() {
+    return this.pos.side
+  }
+  castle() {
+    return this.pos.castle
+  }
+  enPas() {
+    return this.pos.enPas;
+  }
+
+  pgn() {}
+  move(move) {}
+  legalMoves() {}
+  isGameOver() {}
+
+  place(piece, square) {}
+  remove(square) {}
 }
 
-module.exports = Board;
+module.exports = {
+  Board,
+  squareToIndex,
+  indexToFile,
+  indexToRank,
+  indexToSquare,
+  bitboardToIndicies,
+  fenPiecesToArr,
+  arrToFenPieces,
+  arrToBitboard,
+  bitboardToArr,
+  fenToObj,
+  objToFen
+};
