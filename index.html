@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Chess</title>
+  <link rel="stylesheet" href="css/container.css">
+  <link rel="stylesheet" href="css/board.css">
+  <link rel="stylesheet" href="css/info.css">
+  <script defer src="js/engine.js"></script>
+  <script defer src="js/gui.js"></script>
+  <script defer src="js/test.js"></script>
+  <script defer src="js/main.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div id="board"></div>
+    <div id="info">
+      <input id="fen-input" type="text" placeholder="Set fen">
+      <button id="set-fen" type="button">Set</button>
+      <br>
+      Fen: <span id="fen-output"></span><br>
+      Mode
+      <select id="mode">
+        <option value="1">1P</option>
+        <option value="2" selected>2P</option>
+      </select>
+      Thinking time
+      <select id="time">
+        <option value="1000">1s</option>
+        <option value="2000">2s</option>
+        <option value="5000">5s</option>
+        <option value="10000">10s</option>
+      </select>
+      Level
+      <select id="level">
+        <option value="1">1</option>
+        <option value="2">2</option>
+      </select>
+      <button id="analyse" type="button">Analyse</button>
+      <br>
+      <button id="make-move" type="button">Move</button>
+      <button id="undo" type="button">Undo</button>
+      <button id="new-game" type="button">New</button>
+      <button id="flip-board" type="button">Flip</button>
+      <button id="perft" type="button">Perft</button>
+      <br><br>
+      Side to move: <span id="output-side"></span><br><br>
+      Best move: <span id="output-best-move"></span><br>
+      Principle variation <span id="output-analysis"></span><br>
+      Depth: <span id="output-depth"></span><br>
+      Score: <span id="output-score"></span><br>
+      Nodes: <span id="output-nodes"></span><br>
+      Ordering: <span id="output-ordering"></span><br>
+      Time: <span id="output-time"></span><br>
+    </div>
+  </div>
+    
+</body>
+</html>
