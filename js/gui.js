@@ -157,6 +157,8 @@ class ChessGUI {
 
   clear() {
     this.squares.childNodes.forEach(x => x.textContent = "");
+    this.deselectAll();
+    this.unHighlightAll();
   }
 
   getPiece(file, rank) {
@@ -184,6 +186,18 @@ class ChessGUI {
     this.removePiece(fromFile, fromRank);
     this.removePiece(toFile, toRank);
     this.squareToElement(toFile, toRank).appendChild(img);
+  }
+
+  highlight(file, rank) {
+    this.squareToElement(file, rank).classList.add("highlight-red");
+  }
+
+  unHighlight(file, rank) {
+    this.squareToElement(file, rank).classList.remove("highlight-red");
+  }
+
+  unHighlightAll() {
+    this.squares.childNodes.forEach(x => x.classList.remove("highlight-red"));
   }
 
   followMouse(event) {
