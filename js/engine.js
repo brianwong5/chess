@@ -694,10 +694,11 @@ class Engine {
   }
 
   isRepetition() {
+    let repetitions = 0;
     for (let i = Math.max(0, this.historyPly - this.fiftyMove); i < this.historyPly - 1; ++i) {
-      if (this.key === this.history[i].key) return true;
+      if (this.key === this.history[i].key) ++repetitions;
     }
-    return false;
+    return repetitions >= 2;
   }
 
   isMaterialDraw() {
@@ -1157,9 +1158,10 @@ class Engine {
 
     let alpha = -INFINITY;
     let beta = INFINITY;
+    let score = 0;
     for (let currentDepth = 1; currentDepth <= depth; ++currentDepth) {
       this.followPv = true;
-      const score = this.negamax(alpha, beta, currentDepth, true);
+      score = this.negamax(alpha, beta, currentDepth, true);
       // we fell outside the window, so try again with a full-width window and same depth
       if (score <= alpha || score >= beta) {
         alpha = -INFINITY;
@@ -1190,12 +1192,13 @@ class Engine {
 
       // experimental - if found mate end search early
       const absoluteScore = Math.abs(score);
-      if (absoluteScore > MATE_SCORE && absoluteScore < MATE_VALUE) {
-        console.table("mate found, ending search early")
-        break;
-      }
+      if (absoluteScore > MATE_SCORE && absoluteScore < MATE_VALUE) break;
     }
-    return moveToString(this.pvTable[0][0]);
+    return {
+      moveEncoded: this.pvTable[0][0],
+      moveString: moveToString(this.pvTable[0][0]),
+      score
+    };
   }
 
   quiescence(alpha, beta) {
@@ -1278,11 +1281,11 @@ class Engine {
           const newScore = this.quiescence(alpha, beta);
           return newScore > score ? newScore : score;
         }
-        score += 175;
-        if (score < beta && depth <= 3) {
-          const newScore = this.quiescence(alpha, beta);
-          if (newScore < beta) return newScore > score ? newScore : score;
-        }
+        // score += 175;
+        // if (score < beta && depth <= 3) {
+        //   const newScore = this.quiescence(alpha, beta);
+        //   if (newScore < beta) return newScore > score ? newScore : score;
+        // }
       }
 
       if (depth < 4 && Math.abs(alpha) < MATE_SCORE && staticEval + FUTILITY_MARGIN[depth] <= alpha) {

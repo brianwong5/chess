@@ -50,6 +50,10 @@
   background-color: #7D8796;
 }
 
+.highlight-red {
+  background-color: crimson;
+}
+
 img.piece {
   width: 100%;
   user-select: none;
