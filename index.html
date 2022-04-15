@@ -24,18 +24,18 @@
         <option value="1">1P</option>
         <option value="2" selected>2P</option>
       </select>
-      Thinking time
+      <!-- Thinking time
       <select id="time">
         <option value="1000">1s</option>
         <option value="2000">2s</option>
         <option value="5000">5s</option>
         <option value="10000">10s</option>
-      </select>
-      Level
+      </select> -->
+      <!-- Level
       <select id="level">
         <option value="1">1</option>
         <option value="2">2</option>
-      </select>
+      </select> -->
       <button id="analyse" type="button">Analyse</button>
       <br>
       <button id="make-move" type="button">Move</button>
@@ -43,15 +43,16 @@
       <button id="new-game" type="button">New</button>
       <button id="flip-board" type="button">Flip</button>
       <button id="perft" type="button">Perft</button>
+      <select id="perft-depth">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4" selected>4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+      </select>
       <br><br>
-      Side to move: <span id="output-side"></span><br><br>
-      Best move: <span id="output-best-move"></span><br>
-      Principle variation <span id="output-analysis"></span><br>
-      Depth: <span id="output-depth"></span><br>
-      Score: <span id="output-score"></span><br>
-      Nodes: <span id="output-nodes"></span><br>
-      Ordering: <span id="output-ordering"></span><br>
-      Time: <span id="output-time"></span><br>
+      Best move: <span id="output-best"></span><br>
     </div>
   </div>
     

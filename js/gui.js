@@ -188,27 +188,3 @@ class ChessGUI {
     this.selectedPiece.style.transform = `translate(${clientX - x - width / 2}px, ${clientY - y - height / 2}px)`;
   }
 }
-
-function clearStats() {
-  document.getElementById("output-time").textContent = "";
-  document.getElementById("output-best-move").textContent = "";
-  document.getElementById("output-analysis").textContent = "";
-  document.getElementById("output-depth").textContent = "";
-  document.getElementById("output-score").textContent = "";
-  document.getElementById("output-nodes").textContent = "";
-  document.getElementById("output-ordering").textContent = "";
-}
-
-function updateStats(search) {
-  document.getElementById("output-time").textContent = ((new Date() - search.startTime) / 1000).toFixed(2) + "s";
-  document.getElementById("output-best-move").textContent = search.best.logString;
-  document.getElementById("output-analysis").textContent = search.analysis;
-  document.getElementById("output-depth").textContent = search.searchDepth;
-  let score = (search.bestScore / 100).toFixed(2);
-  if (Math.abs(search.bestScore) > checkmateScore - MAX_DEPTH) {
-    score = `Mate in ${Math.ceil((checkmateScore - Math.abs(search.bestScore)) / 2)}`
-  }
-  document.getElementById("output-score").textContent = score;
-  document.getElementById("output-nodes").textContent = search.nodes;
-  document.getElementById("output-ordering").textContent = (search.failHighFirst / search.failHigh * 100).toFixed(2) + "%";
-}

@@ -224,7 +224,7 @@ function perft() {
 function m2() {
   const engine = new Engine();
   engine.parseFen(M2_FEN);
-  assertEquals("d5f6", moveToString(engine.search(4)));
+  assertEquals("d5f6", engine.search(4));
 }
 
 function hash() {
@@ -240,6 +240,10 @@ function repetition() {
   const engine = new Engine();
 
   engine.parseFen(START_FEN);
+  engine.makeMove(engine.parseMove("b1c3"));
+  engine.makeMove(engine.parseMove("b8c6"));
+  engine.makeMove(engine.parseMove("c3b1"));
+  engine.makeMove(engine.parseMove("c6b8"));
   engine.makeMove(engine.parseMove("b1c3"));
   engine.makeMove(engine.parseMove("b8c6"));
   engine.makeMove(engine.parseMove("c3b1"));
@@ -272,6 +276,6 @@ isSquareAttacked();
 
 // perft();
 
-// m2();
+m2();
 hash();
 repetition();

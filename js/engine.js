@@ -694,10 +694,11 @@ class Engine {
   }
 
   isRepetition() {
+    let repetitions = 0;
     for (let i = Math.max(0, this.historyPly - this.fiftyMove); i < this.historyPly - 1; ++i) {
-      if (this.key === this.history[i].key) return true;
+      if (this.key === this.history[i].key) ++repetitions;
     }
-    return false;
+    return repetitions >= 2;
   }
 
   isMaterialDraw() {
@@ -1278,11 +1279,11 @@ class Engine {
           const newScore = this.quiescence(alpha, beta);
           return newScore > score ? newScore : score;
         }
-        score += 175;
-        if (score < beta && depth <= 3) {
-          const newScore = this.quiescence(alpha, beta);
-          if (newScore < beta) return newScore > score ? newScore : score;
-        }
+        // score += 175;
+        // if (score < beta && depth <= 3) {
+        //   const newScore = this.quiescence(alpha, beta);
+        //   if (newScore < beta) return newScore > score ? newScore : score;
+        // }
       }
 
       if (depth < 4 && Math.abs(alpha) < MATE_SCORE && staticEval + FUTILITY_MARGIN[depth] <= alpha) {
