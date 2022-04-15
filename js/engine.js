@@ -1523,11 +1523,11 @@ initEvaluationMasks();
 
 // testing
 
-const engine = new Engine(2);
+// const engine = new Engine(2);
 
-engine.parseFen(FEN_1);
-console.log(engine.boardToString());
-engine.search(7);
+// engine.parseFen(FEN_1);
+// console.log(engine.boardToString());
+// engine.search(7);
 
 // console.log(moveToString(engine.parseMove("g2g1q")));
 // let generateMovesTime = 0;
