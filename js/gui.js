@@ -27,13 +27,18 @@ class ChessGUI {
   static RANK_6 = 5;
   static RANK_7 = 6;
   static RANK_8 = 7;
-  constructor(container) {
+  constructor(container, config = {}) {
     if (typeof container === "object") {
       this.board = container;
     }
     else if (typeof container === "string") {
       this.board = document.querySelector(container);
     }
+    this.handleMove = config.handleMove ? config.handleMove : move => {
+      this.movePiece(fileLetters.indexOf(move[0]), rankLetters.indexOf(move[1]),
+        fileLetters.indexOf(move[2]), rankLetters.indexOf(move[3]));
+    };
+    this.afterMove = config.afterMove ? config.afterMove : () => ({});
     // empty board and create divs
     this.board.textContent = "";
     ["ranks", "files", "squares"].forEach(x => {
@@ -73,7 +78,7 @@ class ChessGUI {
     }
     this.userFrom = null;
     this.board.addEventListener("mousemove", this.followMouse.bind(this));
-    this.squares.childNodes.forEach(square => square.addEventListener("click", ({target: element}) => {
+    this.squares.childNodes.forEach(square => square.addEventListener("click", ({ target: element }) => {
       const file = this.getFile(element);
       const rank = this.getRank(element);
       if (this.userFrom === null) {
@@ -88,7 +93,9 @@ class ChessGUI {
         this.deselectAll();
         this.selectedPiece.removeAttribute("style");
         this.selectedPiece = undefined;
-        this.movePiece(fileLetters.indexOf(this.userFrom[0]), rankLetters.indexOf(this.userFrom[1]), file, rank);
+        if (this.handleMove(`${this.userFrom}${fileLetters[file]}${rankLetters[rank]}`)) {
+          this.afterMove();
+        }
         this.userFrom = null;
       }
     }));
@@ -183,8 +190,8 @@ class ChessGUI {
     if (this.selectedPiece === undefined) {
       return;
     }
-    const {x, y, width, height} = this.selectedSquare.getBoundingClientRect();
-    const {clientX, clientY} = event;
+    const { x, y, width, height } = this.selectedSquare.getBoundingClientRect();
+    const { clientX, clientY } = event;
     this.selectedPiece.style.transform = `translate(${clientX - x - width / 2}px, ${clientY - y - height / 2}px)`;
   }
 }

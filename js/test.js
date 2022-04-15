@@ -224,7 +224,7 @@ function perft() {
 function m2() {
   const engine = new Engine();
   engine.parseFen(M2_FEN);
-  assertEquals("d5f6", engine.search(4));
+  assertEquals("d5f6", engine.search(4).moveString);
 }
 
 function hash() {
@@ -274,7 +274,7 @@ magicAttacks();
 
 isSquareAttacked();
 
-// perft();
+perft();
 
 m2();
 hash();

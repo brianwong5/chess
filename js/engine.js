@@ -1158,9 +1158,10 @@ class Engine {
 
     let alpha = -INFINITY;
     let beta = INFINITY;
+    let score = 0;
     for (let currentDepth = 1; currentDepth <= depth; ++currentDepth) {
       this.followPv = true;
-      const score = this.negamax(alpha, beta, currentDepth, true);
+      score = this.negamax(alpha, beta, currentDepth, true);
       // we fell outside the window, so try again with a full-width window and same depth
       if (score <= alpha || score >= beta) {
         alpha = -INFINITY;
@@ -1191,12 +1192,13 @@ class Engine {
 
       // experimental - if found mate end search early
       const absoluteScore = Math.abs(score);
-      if (absoluteScore > MATE_SCORE && absoluteScore < MATE_VALUE) {
-        console.table("mate found, ending search early")
-        break;
-      }
+      if (absoluteScore > MATE_SCORE && absoluteScore < MATE_VALUE) break;
     }
-    return moveToString(this.pvTable[0][0]);
+    return {
+      moveEncoded: this.pvTable[0][0],
+      moveString: moveToString(this.pvTable[0][0]),
+      score
+    };
   }
 
   quiescence(alpha, beta) {

@@ -1,6 +1,6 @@
 (function () {
   const engine = new Engine();
-  const gui = new ChessGUI("#board");
+  const gui = new ChessGUI("#board", { handleMove, afterMove });
 
   engine.parseFen(START_FEN);
   mirror(engine, gui);
@@ -13,24 +13,24 @@
   document.getElementById("analyse").addEventListener("click", () => {
     // search.time = parseInt(document.getElementById("time").value);
     // search.level = parseInt(document.getElementById("level").value);
-    const bestMove = engine.search(8);
+    const bestMove = engine.search(8).moveString;
     if (bestMove) {
       document.getElementById("output-best").textContent = bestMove;
     }
   });
   document.getElementById("make-move").addEventListener("click", () => {
     const bestMove = engine.search(8);
-    if (bestMove) {
-      document.getElementById("output-best").textContent = bestMove;
-      engine.makeMove(engine.parseMove(bestMove));
+    if (bestMove.moveEncoded) {
+      document.getElementById("output-best").textContent = bestMove.moveString;
+      engine.makeMove(bestMove.moveEncoded);
       mirror(engine, gui);
     }
   });
   document.getElementById("undo").addEventListener("click", () => {
     if (engine.historyPly > 0) {
       engine.takeMove();
+      mirror(engine, gui);
     }
-    mirror(engine, gui);
   });
   document.getElementById("new-game").addEventListener("click", () => {
     engine.parseFen(START_FEN);
@@ -50,6 +50,29 @@
           gui.addPiece(file, rank, (piece === piece.toUpperCase()) ? ChessGUI.WHITE : ChessGUI.BLACK, letters.indexOf(piece.toUpperCase()));
         }
       }
+    }
+  }
+  function handleMove(move) {
+    const encoded = engine.parseMove(move);
+    if (encoded) {
+      engine.makeMove(encoded);
+      mirror(engine, gui);
+      return true;
+    }
+    return false;
+  }
+  function afterMove() {
+    console.log(document.getElementById("mode").value === "1")
+    if (document.getElementById("mode").value === "1") {
+      console.log("computer move")
+      setTimeout(() => {
+        const bestMove = engine.search(8);
+        if (bestMove.moveEncoded) {
+          document.getElementById("output-best").textContent = bestMove.moveString;
+          engine.makeMove(bestMove.moveEncoded);
+          mirror(engine, gui);
+        }
+      }, 200);
     }
   }
 })();
