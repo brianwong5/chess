@@ -1194,12 +1194,14 @@ class Engine {
   multiSearch(depth, lines = 3) {
     const output = [];
     const excludedMoves = [];
-    for (let line = 0; line < lines || this.generateMoves().length === 0; ++line) {
-      console.log(`line ${line + 1}`);
-      const search = this.search(line === 0 ? depth : Math.max(3, depth - 1), excludedMoves);
+    for (let line = 0; line < lines; ++line) {
+      console.table(`line ${line + 1}`);
+      const search = this.search(line === 0 ? depth : Math.max(5, depth - 1), excludedMoves);
+      if (!search.moveEncoded) break;
       excludedMoves.push(search.moveEncoded);
       output.push(search);
     }
+    console.table(output);
     return output;
   }
 
