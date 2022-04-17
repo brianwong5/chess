@@ -46,7 +46,7 @@
     }
   }
   function engineMove() {
-    const bestMove = engine.search(8);
+    const bestMove = engine.search(7);
     if (bestMove.moveEncoded) {
       document.getElementById("output-best").textContent = bestMove.moveString;
       engine.makeMove(bestMove.moveEncoded);
@@ -57,8 +57,7 @@
   }
   function handleMove(move) {
     const encoded = engine.parseMove(move);
-    if (encoded) {
-      engine.makeMove(encoded);
+    if (engine.makeMove(encoded)) {
       mirror(engine, gui);
       gui.highlight(move.charCodeAt(0) - "a".charCodeAt(0), move[1] - 1);
       gui.highlight(move.charCodeAt(2) - "a".charCodeAt(0), move[3] - 1);

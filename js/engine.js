@@ -847,19 +847,15 @@ class Engine {
   }
 
   isSquareAttacked(square, side) {
-    // let start = Date.now();
     if (!isZero(and(PAWN_ATTACKS[side ^ 1][square], this.bitboards[side * 6 + PIECE.WHITE_PAWN]))) {
-      // isSquareAttackedTime += Date.now() - start;
       return true;
     }
 
     for (let piece = side * 6 + PIECE.WHITE_KNIGHT; piece <= side * 6 + PIECE.WHITE_KING; ++piece) {
       if (!isZero(and(this.getAttacks(piece, square), this.bitboards[piece]))) {
-        // isSquareAttackedTime += Date.now() - start;
         return true;
       }
     }
-    // isSquareAttackedTime += Date.now() - start;
     return false;
   }
 
@@ -872,7 +868,6 @@ class Engine {
   }
 
   generateMoves() {
-    // let startTime = Date.now();
     const moves = [];
     for (let piece = PIECE.WHITE_PAWN; piece <= PIECE.BLACK_KING; ++piece) {
       const bitboard = copyBitboard(this.bitboards[piece]);
@@ -957,7 +952,54 @@ class Engine {
         }
       }
     }
-    // generateMovesTime += Date.now() - startTime;
+    return moves;
+  }
+
+  generateCaptures() {
+    const moves = [];
+    for (let piece = PIECE.WHITE_PAWN; piece <= PIECE.BLACK_KING; ++piece) {
+      const bitboard = copyBitboard(this.bitboards[piece]);
+      if (isPawn(piece) && getSide(piece) === this.side) {
+        while (!isZero(bitboard)) {
+          const source = getLSB(bitboard);
+          const attacks = and(PAWN_ATTACKS[this.side][source], this.occupancies[this.side ^ 1]);
+          while (!isZero(attacks)) {
+            const attackTarget = getLSB(attacks);
+            // pawn capture promotion
+            if (squareToRank(source) === PAWN_START_RANK[this.side ^ 1]) {
+              moves.push(encodeMove(source, attackTarget, piece, piece + 4, CAPTURE_FLAG));
+              moves.push(encodeMove(source, attackTarget, piece, piece + 3, CAPTURE_FLAG));
+              moves.push(encodeMove(source, attackTarget, piece, piece + 2, CAPTURE_FLAG));
+              moves.push(encodeMove(source, attackTarget, piece, piece + 1, CAPTURE_FLAG));
+            } else {
+              // pawn capture
+              moves.push(encodeMove(source, attackTarget, piece, PIECE.NONE, CAPTURE_FLAG));
+            }
+            popBit(attacks, attackTarget);
+          }
+          if (this.enPassant !== SQUARE.NONE) {
+            if (getBit(PAWN_ATTACKS[this.side][source], this.enPassant)) {
+              moves.push(encodeMove(source, this.enPassant, piece, PIECE.NONE, CAPTURE_FLAG | EN_PASSANT_FLAG));
+            }
+          }
+          popBit(bitboard, source);
+        }
+      } else if (getSide(piece) === this.side) {
+        while (!isZero(bitboard)) {
+          const source = getLSB(bitboard);
+          const attacks = and(this.getAttacks(piece, source), negate(this.occupancies[this.side]));
+          while (!isZero(attacks)) {
+            const target = getLSB(attacks);
+            if (getBit(this.occupancies[this.side ^ 1], target)) {
+              // capture
+              moves.push(encodeMove(source, target, piece, PIECE.NONE, CAPTURE_FLAG));
+            }
+            popBit(attacks, target);
+          }
+          popBit(bitboard, source);
+        }
+      }
+    }
     return moves;
   }
 
@@ -974,7 +1016,6 @@ class Engine {
   }
 
   makeMove(move) {
-    // let start = Date.now();
     const source = getSource(move);
     const target = getTarget(move);
     const movedPiece = getMovedPiece(move);
@@ -1046,10 +1087,8 @@ class Engine {
     this.key ^= SIDE_KEY;
     if (this.isSquareAttacked(getLSB(this.bitboards[(this.side ^ 1) * 6 + PIECE.WHITE_KING]), this.side)) {
       this.takeMove();
-      // makeMoveTime += Date.now() - start;
       return false;
     }
-    // makeMoveTime += Date.now() - start;
     return true;
   }
 
@@ -1152,7 +1191,21 @@ class Engine {
     return nodes;
   }
 
-  search(depth) {
+  multiSearch(depth, lines = 3) {
+    const output = [];
+    const excludedMoves = [];
+    for (let line = 0; line < lines; ++line) {
+      console.table(`line ${line + 1}`);
+      const search = this.search(line === 0 ? depth : Math.max(5, depth - 1), excludedMoves);
+      if (!search.moveEncoded) break;
+      excludedMoves.push(search.moveEncoded);
+      output.push(search);
+    }
+    console.table(output);
+    return output;
+  }
+
+  search(depth, excludedMoves = []) {
     const start = Date.now();
     this.resetSearch();
 
@@ -1161,7 +1214,7 @@ class Engine {
     let score = 0;
     for (let currentDepth = 1; currentDepth <= depth; ++currentDepth) {
       this.followPv = true;
-      score = this.negamax(alpha, beta, currentDepth, true);
+      score = this.negamax(alpha, beta, currentDepth, true, excludedMoves);
       // we fell outside the window, so try again with a full-width window and same depth
       if (score <= alpha || score >= beta) {
         alpha = -INFINITY;
@@ -1211,10 +1264,9 @@ class Engine {
       alpha = evaluation;
     }
     ++this.searchedNodes;
-    const moves = this.generateMoves().sort((a, b) => this.scoreMove(b) - this.scoreMove(a));
+    const moves = this.generateCaptures().sort((a, b) => this.scoreMove(b) - this.scoreMove(a));
     for (let i = 0; i < moves.length; ++i) {
       const move = moves[i];
-      if (!isCapture(move)) continue;
       ++this.searchPly;
       if (!this.makeMove(move)) {
         --this.searchPly;
@@ -1234,7 +1286,7 @@ class Engine {
     return alpha;
   }
 
-  negamax(alpha, beta, depth, doNullMove) {
+  negamax(alpha, beta, depth, doNullMove, excludedMoves = []) {
     let score = 0;
     let hashFlag = HASH_ALPHA;
     let pvNode = beta - alpha > 1;
@@ -1294,10 +1346,9 @@ class Engine {
     }
 
     let legalMoves = 0;
-    const moves = this.generateMoves()
-    if (this.followPv) {
-      this.enablePvScoring(moves);
-    }
+    let moves = this.generateMoves();
+    if (this.searchPly === 0) moves = moves.filter(move => !excludedMoves.includes(move));
+    if (this.followPv) this.enablePvScoring(moves);
     moves.sort((a, b) => this.scoreMove(b) - this.scoreMove(a));
     let movesSearched = 0;
     for (let i = 0; i < moves.length; ++i) {
@@ -1533,11 +1584,4 @@ initEvaluationMasks();
 // engine.search(7);
 
 // console.log(moveToString(engine.parseMove("g2g1q")));
-// let generateMovesTime = 0;
-// let makeMoveTime = 0;
-// let isSquareAttackedTime = 0;
 // engine.perft(4);
-
-// console.log(`generateMoves: ${generateMovesTime}ms`);
-// console.log(`makeMove: ${makeMoveTime}ms`);
-// console.log(`isSquareAttacked: ${isSquareAttackedTime}ms`);
