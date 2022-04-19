@@ -1016,6 +1016,7 @@ class Engine {
   }
 
   makeMove(move) {
+    if (!move) return false;
     const source = getSource(move);
     const target = getTarget(move);
     const movedPiece = getMovedPiece(move);
@@ -1196,7 +1197,7 @@ class Engine {
     const excludedMoves = [];
     for (let line = 0; line < lines; ++line) {
       console.table(`line ${line + 1}`);
-      const search = this.search(line === 0 ? depth : Math.max(5, depth - 1), excludedMoves);
+      const search = this.search(line === 0 ? depth : Math.max(3, depth - 1), excludedMoves);
       if (!search.moveEncoded) break;
       excludedMoves.push(search.moveEncoded);
       output.push(search);
