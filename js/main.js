@@ -1,3 +1,6 @@
+import Engine, { START_FEN } from "./engine.js";
+import ChessGUI from "./gui.js";
+
 (function () {
   const engine = new Engine();
   const gui = new ChessGUI("#board", { handleMove, afterMove });
@@ -66,9 +69,7 @@
     return false;
   }
   function afterMove() {
-    console.log(document.getElementById("mode").value === "1")
     if (document.getElementById("mode").value === "1") {
-      console.log("computer move")
       setTimeout(engineMove, 200);
     }
   }

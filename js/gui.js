@@ -2,7 +2,7 @@ const PIECE_LETTER = "FPNBRQK";
 const fileLetters = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const rankLetters = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
-class ChessGUI {
+export default class ChessGUI {
   static WHITE = 0;
   static BLACK = 1;
   static PAWN = 1;
