@@ -1,3 +1,10 @@
+import Engine, {
+  START_FEN, FEN_1, FEN_2, FEN_3, M2_FEN, FILE, RANK, SQUARE, COLOUR, PIECE, createBitboard, setBit, popBit, getBit, and,
+  NOT_H_FILE, getLSB, countBits, leftShift, rightShift,
+  squareToFile, squareToRank, squareToFileRank, fileRankToSquare, bitboardToString, pieceToAscii, asciiToPiece,
+  maskPawnAttacks, maskKnightAttacks, maskKingAttacks, bishopAttacksOnTheFly, rookAttacksOnTheFly, getBishopAttacks, getRookAttacks, getQueenAttacks
+} from "./engine.js";
+
 const assertEquals = (expected, actual) => console.assert(expected === actual, `Expected: ${expected}, Actual: ${actual}`);
 const assertTrue = condition => assertEquals(true, condition);
 const assertFalse = condition => assertEquals(false, condition);
