@@ -735,7 +735,7 @@ class BaseCustomEval {
     if (countBits(bitboards[PIECE.BLACK_BISHOP]) > 2) score -= this.bishopPairBonus;
 
     // experimental - penalty for fifty move rule
-    // score = score * Math.floor((100 - this.fiftyMove) / 100);
+    // score = (score * (100 - this.fiftyMove) / 100) << 0;
     return score;
   }
 }
@@ -943,7 +943,7 @@ class PestoEval {
       }
     }
     if (gamePhase > 24) gamePhase = 24;
-    return Math.floor((mgScore * gamePhase + egScore * (24 - gamePhase)) / gamePhase);
+    return Math.floor((mgScore * gamePhase + egScore * (24 - gamePhase)) / 24);
   }
 }
 
