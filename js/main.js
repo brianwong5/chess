@@ -2,7 +2,7 @@ import Engine, { START_FEN } from "./engine.js";
 import ChessGUI from "./gui.js";
 
 (function () {
-  const engine = new Engine();
+  const engine = new Engine(Engine.PESTO);
   const gui = new ChessGUI("#board", { handleMove, afterMove });
 
   engine.parseFen(START_FEN);
