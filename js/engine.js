@@ -735,7 +735,7 @@ class BaseCustomEval {
     if (countBits(bitboards[PIECE.BLACK_BISHOP]) > 2) score -= this.bishopPairBonus;
 
     // experimental - penalty for fifty move rule
-    // score = score * Math.floor((100 - this.fiftyMove) / 100);
+    // score = (score * (100 - this.fiftyMove) / 100) << 0;
     return score;
   }
 }
@@ -943,7 +943,7 @@ class PestoEval {
       }
     }
     if (gamePhase > 24) gamePhase = 24;
-    return Math.floor((mgScore * gamePhase + egScore * (24 - gamePhase)) / gamePhase);
+    return Math.floor((mgScore * gamePhase + egScore * (24 - gamePhase)) / 24);
   }
 }
 
@@ -1881,7 +1881,7 @@ initEvaluationMasks();
 
 const engine = new Engine(Engine.PESTO);
 
-engine.parseFen(START_FEN);
+engine.parseFen('8/8/8/2pK4/1k6/8/8/8 b - - 1 54');
 console.log(engine.evaluate());
 console.log(engine.boardToString());
 // console.table(engine.multiSearch(5, 5));
