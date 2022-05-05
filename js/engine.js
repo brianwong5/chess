@@ -955,7 +955,7 @@ export const FULL_DEPTH_MOVES = 4;
 export const REDUCTION_LIMIT = 3;
 export const FUTILITY_MARGIN = [0, 100, 320, 500];
 
-export const MATERIAL_SCORE = [100, 320, 330, 500, 900, 20000, -100, -320, -330, -500, -900, -20000];
+export const BASIC_MATERIAL_SCORE = [1, 3, 3, 5, 9, 0, 1, 3, 3, 5, 9, 0];
 
 export const MVV_LVA = [
   [105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605],
@@ -1107,11 +1107,10 @@ export default class Engine {
   }
 
   // 0 = opening/middle game, 1 = end game
-  getGamePhase() {
+  getTotalMaterial() {
     let score = 0;
-    for (let piece = PIECE.WHITE_KNIGHT; piece <= PIECE.WHITE_QUEEN; ++piece) score += countBits(this.bitboards[piece]) * MATERIAL_SCORE[piece];
-    for (let piece = PIECE.BLACK_KNIGHT; piece <= PIECE.BLACK_QUEEN; ++piece) score += countBits(this.bitboards[piece]) * -MATERIAL_SCORE[piece];
-    return score <= 2460 ? 1 : 0;
+    for (let piece = PIECE.WHITE_PAWN; piece <= PIECE.BLACK_KING; ++piece) score += countBits(this.bitboards[piece]) * BASIC_MATERIAL_SCORE[piece];
+    return score;
   }
 
   enablePvScoring(moves) {
@@ -1867,9 +1866,10 @@ initEvaluationMasks();
 
 const engine = new Engine(Engine.PESTO);
 
-engine.parseFen('8/8/8/2pK4/1k6/8/8/8 b - - 1 54');
+engine.parseFen(START_FEN);
 console.log(engine.evaluate());
 console.log(engine.boardToString());
+console.log(engine.getTotalMaterial());
 // console.table(engine.multiSearch(5, 5));
 
 // console.log(moveToString(engine.parseMove("g2g1q")));
