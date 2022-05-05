@@ -1557,6 +1557,7 @@ export default class Engine {
   }
 
   quiescence(alpha, beta) {
+    if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
     const evaluation = this.evaluate();
     if (this.searchPly > MAX_PLY - 1) return evaluation;
     if (evaluation >= beta) {
@@ -1856,21 +1857,6 @@ export default class Engine {
     }
     return output;
   }
-}
-
-function magic64ToBitboardCode(array) {
-  let b32 = array.map(x => {
-    let low = Number(x & 0xFFFFFFFFn)
-    let high = Number((x >> 32n) & 0xFFFFFFFFn)
-    return [low, high];
-  });
-
-  let line = "[\n";
-  for (let i = 0; i < 64; i += 4) {
-    line += `[${b32[i][0]}, ${b32[i][1]}],[${b32[i + 1][0]}, ${b32[i + 1][1]}],[${b32[i + 2][0]}, ${b32[i + 2][1]}],[${b32[i + 3][0]}, ${b32[i + 3][1]}],\n`
-  }
-  line += "]";
-  console.log(line);
 }
 
 initLeaperAttacks();
