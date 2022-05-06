@@ -1575,9 +1575,9 @@ export default class Engine {
   }
 
   quiescence(alpha, beta) {
+    if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
     if ((this.searchedNodes & 2047) === 0) this.checkTime();
     ++this.searchedNodes;
-    if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
     const evaluation = this.evaluate();
     if (this.searchPly > MAX_PLY - 1) return evaluation;
     if (evaluation >= beta) {
@@ -1611,6 +1611,7 @@ export default class Engine {
   }
 
   negamax(alpha, beta, depth, doNullMove, excludedMoves = []) {
+    if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
     let score = 0;
     let hashFlag = HASH_ALPHA;
     let pvNode = beta - alpha > 1;
@@ -1619,7 +1620,6 @@ export default class Engine {
       return score;
     }
     this.pvLength[this.searchPly] = this.searchPly;
-    if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
     if (depth <= 0) return this.quiescence(alpha, beta);
     if (this.searchPly > MAX_PLY - 1) return this.evaluate();
     if ((this.searchedNodes & 2047) === 0) this.checkTime();
