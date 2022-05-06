@@ -1082,6 +1082,7 @@ export default class Engine {
     this.scorePv = false;
     this.killerMoves = Array(2).fill().map(() => Array(MAX_PLY).fill(0));
     this.historyMoves = Array(12).fill().map(() => Array(64).fill(0));
+    this.stopSearch = false;
   }
 
   isRepetition() {
@@ -1506,16 +1507,25 @@ export default class Engine {
     return output;
   }
 
-  search(depth, excludedMoves = []) {
-    const start = Date.now();
+  search(depth, excludedMoves = [], time = -1) {
+    this.start = Date.now();
     this.resetSearch();
+    this.time = time;
 
     let alpha = -INFINITY;
     let beta = INFINITY;
     let score = 0;
     for (let currentDepth = 1; currentDepth <= depth; ++currentDepth) {
+      if (this.shouldContinueSearch()) {
+        console.log(`used up > 55% of time (${Date.now() - this.start} of ${this.time}), will not go to next depth`);
+        break;
+      }
       this.followPv = true;
       score = this.negamax(alpha, beta, currentDepth, true, excludedMoves);
+      if (this.stopSearch) {
+        console.log("time is up, ending search early");
+        break;
+      }
       // we fell outside the window, so try again with a full-width window and same depth
       if (score <= alpha || score >= beta) {
         alpha = -INFINITY;
@@ -1537,14 +1547,13 @@ export default class Engine {
       } else {
         line += `cp ${score}`;
       }
-      line += ` depth ${currentDepth} nodes ${this.searchedNodes} time ${end - start}ms pv `;
+      line += ` depth ${currentDepth} nodes ${this.searchedNodes} time ${end - this.start}ms pv `;
 
       for (let i = 0; i < this.pvLength[0]; ++i) {
         line += moveToString(this.pvTable[0][i]) + " ";
       }
       console.log(line);
 
-      // experimental - if found mate end search early
       const absoluteScore = Math.abs(score);
       if (absoluteScore > MATE_SCORE && absoluteScore < MATE_VALUE) break;
     }
@@ -1555,7 +1564,19 @@ export default class Engine {
     };
   }
 
+  shouldContinueSearch() {
+    return this.time > 0 && Date.now() - this.start >= this.time * 0.55;
+  }
+
+  checkTime() {
+    if (this.time > 0 && Date.now() - this.start >= this.time) {
+      this.stopSearch = true;
+    }
+  }
+
   quiescence(alpha, beta) {
+    if ((this.searchedNodes & 2047) === 0) this.checkTime();
+    ++this.searchedNodes;
     if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
     const evaluation = this.evaluate();
     if (this.searchPly > MAX_PLY - 1) return evaluation;
@@ -1565,7 +1586,6 @@ export default class Engine {
     if (evaluation > alpha) {
       alpha = evaluation;
     }
-    ++this.searchedNodes;
     const moves = this.generateCaptures().sort((a, b) => this.scoreMove(b) - this.scoreMove(a));
     for (let i = 0; i < moves.length; ++i) {
       const move = moves[i];
@@ -1577,7 +1597,9 @@ export default class Engine {
       let score = -this.quiescence(-beta, -alpha);
       --this.searchPly;
       this.takeMove();
-
+      if (this.stopSearch) {
+        return 0;
+      }
       if (score > alpha) {
         alpha = score;
         if (score >= beta) {
@@ -1600,6 +1622,7 @@ export default class Engine {
     if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
     if (depth <= 0) return this.quiescence(alpha, beta);
     if (this.searchPly > MAX_PLY - 1) return this.evaluate();
+    if ((this.searchedNodes & 2047) === 0) this.checkTime();
     ++this.searchedNodes;
 
     // mate distance pruning
@@ -1687,6 +1710,9 @@ export default class Engine {
       }
       --this.searchPly;
       this.takeMove();
+      if (this.stopSearch) {
+        return 0;
+      }
       ++movesSearched;
       if (score > alpha) {
         hashFlag = HASH_EXACT;
