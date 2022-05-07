@@ -901,14 +901,14 @@ class PestoEval {
         -9, 22, 22, 27, 27, 19, 10, 20,
       ],
       [
-        -53, -34, -21, -11, -28, -14, -24, -43
-        - 27, -11, 4, 13, 14, 4, -5, -17,
+        -53, -34, -21, -11, -28, -14, -24, -43,
+        -27, -11, 4, 13, 14, 4, -5, -17,
         -19, -3, 11, 21, 23, 16, 7, -9,
         -18, -4, 21, 24, 27, 23, 9, -11,
         -8, 22, 24, 27, 26, 33, 26, 3,
         10, 17, 23, 15, 20, 45, 44, 13,
         -12, 17, 14, 17, 17, 38, 23, 11,
-        -74, -35, -18, -18, -11, 15, 4, -17,
+        -74, -35, -18, -18, -11, 15, 4, -17
       ]
     ];
     this.mgTable = [];
@@ -1083,6 +1083,7 @@ export default class Engine {
     this.killerMoves = Array(2).fill().map(() => Array(MAX_PLY).fill(0));
     this.historyMoves = Array(12).fill().map(() => Array(64).fill(0));
     this.stopSearch = false;
+    this.useHashTable = true;
   }
 
   isRepetition() {
@@ -1107,10 +1108,17 @@ export default class Engine {
     return this.side === COLOUR.WHITE ? score : -score;
   }
 
-  // 0 = opening/middle game, 1 = end game
   getTotalMaterial() {
     let score = 0;
     for (let piece = PIECE.WHITE_PAWN; piece <= PIECE.BLACK_KING; ++piece) score += countBits(this.bitboards[piece]) * BASIC_MATERIAL_SCORE[piece];
+    return score;
+  }
+
+  getnonPawnMaterial() {
+    let score = 0;
+    for (let piece = PIECE.WHITE_PAWN; piece <= PIECE.BLACK_KING; ++piece) {
+      if (!isPawn(piece)) score += countBits(this.bitboards[piece]) * BASIC_MATERIAL_SCORE[piece];
+    }
     return score;
   }
 
@@ -1500,7 +1508,7 @@ export default class Engine {
     if (lines === 1) {
       return [time];
     }
-    const best = time * 0.8;
+    const best = Math.floor(time * 0.8);
     const rest = Math.floor(time * 0.2 / (lines - 1));
     const distribution = Array(lines).fill(rest);
     distribution[0] = best;
@@ -1513,7 +1521,7 @@ export default class Engine {
     const timeDistribution = this.distributeTime(time, lines);
     for (let line = 0; line < lines; ++line) {
       console.table(`line ${line + 1}`);
-      const search = this.search(depth, excludedMoves, timeDistribution[line]);
+      const search = this.search(depth, excludedMoves, timeDistribution[line], line === 0);
       if (!search.moveEncoded) break;
       excludedMoves.push(search.moveEncoded);
       output.push(search);
@@ -1522,9 +1530,10 @@ export default class Engine {
     return output;
   }
 
-  search(depth, excludedMoves = [], time = -1) {
+  search(depth, excludedMoves = [], time = -1, useHashTable = true) {
     this.start = Date.now();
     this.resetSearch();
+    this.useHashTable = useHashTable;
     this.time = time;
 
     let alpha = -INFINITY;
@@ -1631,7 +1640,8 @@ export default class Engine {
     let hashFlag = HASH_ALPHA;
     let pvNode = beta - alpha > 1;
     let futilityPruning = false;
-    if (this.searchPly > 0 && (score = this.hashTable.read(this.key, alpha, beta, depth, this.searchPly)) !== NO_HASH_ENTRY && !pvNode) {
+    if (this.searchPly > 0 && this.useHashTable &&
+      (score = this.hashTable.read(this.key, alpha, beta, depth, this.searchPly)) !== NO_HASH_ENTRY && !pvNode) {
       return score;
     }
     this.pvLength[this.searchPly] = this.searchPly;
@@ -1741,7 +1751,7 @@ export default class Engine {
         }
         this.pvLength[this.searchPly] = this.pvLength[this.searchPly + 1];
         if (score >= beta) {
-          this.hashTable.write(this.key, beta, depth, this.searchPly, HASH_BETA);
+          if (this.useHashTable) this.hashTable.write(this.key, beta, depth, this.searchPly, HASH_BETA);
           if (!isCapture(move)) {
             this.killerMoves[1][this.searchPly] = this.killerMoves[0][this.searchPly];
             this.killerMoves[0][this.searchPly] = move;
@@ -1753,7 +1763,7 @@ export default class Engine {
     if (legalMoves === 0) {
       return inCheck ? -MATE_VALUE + this.searchPly : 0;
     }
-    this.hashTable.write(this.key, alpha, depth, this.searchPly, hashFlag);
+    if (this.useHashTable) this.hashTable.write(this.key, alpha, depth, this.searchPly, hashFlag);
     return alpha;
   }
 
