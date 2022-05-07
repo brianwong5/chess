@@ -901,14 +901,14 @@ class PestoEval {
         -9, 22, 22, 27, 27, 19, 10, 20,
       ],
       [
-        -53, -34, -21, -11, -28, -14, -24, -43
-        - 27, -11, 4, 13, 14, 4, -5, -17,
+        -53, -34, -21, -11, -28, -14, -24, -43,
+        -27, -11, 4, 13, 14, 4, -5, -17,
         -19, -3, 11, 21, 23, 16, 7, -9,
         -18, -4, 21, 24, 27, 23, 9, -11,
         -8, 22, 24, 27, 26, 33, 26, 3,
         10, 17, 23, 15, 20, 45, 44, 13,
         -12, 17, 14, 17, 17, 38, 23, 11,
-        -74, -35, -18, -18, -11, 15, 4, -17,
+        -74, -35, -18, -18, -11, 15, 4, -17
       ]
     ];
     this.mgTable = [];
@@ -955,7 +955,7 @@ export const FULL_DEPTH_MOVES = 4;
 export const REDUCTION_LIMIT = 3;
 export const FUTILITY_MARGIN = [0, 100, 320, 500];
 
-export const MATERIAL_SCORE = [100, 320, 330, 500, 900, 20000, -100, -320, -330, -500, -900, -20000];
+export const BASIC_MATERIAL_SCORE = [1, 3, 3, 5, 9, 0, 1, 3, 3, 5, 9, 0];
 
 export const MVV_LVA = [
   [105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605],
@@ -1082,6 +1082,8 @@ export default class Engine {
     this.scorePv = false;
     this.killerMoves = Array(2).fill().map(() => Array(MAX_PLY).fill(0));
     this.historyMoves = Array(12).fill().map(() => Array(64).fill(0));
+    this.stopSearch = false;
+    this.useHashTable = true;
   }
 
   isRepetition() {
@@ -1106,12 +1108,18 @@ export default class Engine {
     return this.side === COLOUR.WHITE ? score : -score;
   }
 
-  // 0 = opening/middle game, 1 = end game
-  getGamePhase() {
+  getTotalMaterial() {
     let score = 0;
-    for (let piece = PIECE.WHITE_KNIGHT; piece <= PIECE.WHITE_QUEEN; ++piece) score += countBits(this.bitboards[piece]) * MATERIAL_SCORE[piece];
-    for (let piece = PIECE.BLACK_KNIGHT; piece <= PIECE.BLACK_QUEEN; ++piece) score += countBits(this.bitboards[piece]) * -MATERIAL_SCORE[piece];
-    return score <= 2460 ? 1 : 0;
+    for (let piece = PIECE.WHITE_PAWN; piece <= PIECE.BLACK_KING; ++piece) score += countBits(this.bitboards[piece]) * BASIC_MATERIAL_SCORE[piece];
+    return score;
+  }
+
+  getnonPawnMaterial() {
+    let score = 0;
+    for (let piece = PIECE.WHITE_PAWN; piece <= PIECE.BLACK_KING; ++piece) {
+      if (!isPawn(piece)) score += countBits(this.bitboards[piece]) * BASIC_MATERIAL_SCORE[piece];
+    }
+    return score;
   }
 
   enablePvScoring(moves) {
@@ -1493,12 +1501,27 @@ export default class Engine {
     return nodes;
   }
 
-  multiSearch(depth, lines = 3) {
+  distributeTime(time, lines) {
+    if (time === -1) {
+      return Array(lines).fill(-1);
+    }
+    if (lines === 1) {
+      return [time];
+    }
+    const best = Math.floor(time * 0.8);
+    const rest = Math.floor(time * 0.2 / (lines - 1));
+    const distribution = Array(lines).fill(rest);
+    distribution[0] = best;
+    return distribution;
+  }
+
+  multiSearch(depth, lines = 3, time = -1) {
     const output = [];
     const excludedMoves = [];
+    const timeDistribution = this.distributeTime(time, lines);
     for (let line = 0; line < lines; ++line) {
       console.table(`line ${line + 1}`);
-      const search = this.search(line === 0 ? depth : Math.max(3, depth - 1), excludedMoves);
+      const search = this.search(depth, excludedMoves, timeDistribution[line], line === 0);
       if (!search.moveEncoded) break;
       excludedMoves.push(search.moveEncoded);
       output.push(search);
@@ -1507,16 +1530,26 @@ export default class Engine {
     return output;
   }
 
-  search(depth, excludedMoves = []) {
-    const start = Date.now();
+  search(depth, excludedMoves = [], time = -1, useHashTable = true) {
+    this.start = Date.now();
     this.resetSearch();
+    this.useHashTable = useHashTable;
+    this.time = time;
 
     let alpha = -INFINITY;
     let beta = INFINITY;
     let score = 0;
     for (let currentDepth = 1; currentDepth <= depth; ++currentDepth) {
+      if (this.shouldContinueSearch()) {
+        console.log(`used up > 55% of time (${Date.now() - this.start} of ${this.time}), will not go to next depth`);
+        break;
+      }
       this.followPv = true;
       score = this.negamax(alpha, beta, currentDepth, true, excludedMoves);
+      if (this.stopSearch) {
+        console.log("time is up, ending search early");
+        break;
+      }
       // we fell outside the window, so try again with a full-width window and same depth
       if (score <= alpha || score >= beta) {
         alpha = -INFINITY;
@@ -1538,14 +1571,13 @@ export default class Engine {
       } else {
         line += `cp ${score}`;
       }
-      line += ` depth ${currentDepth} nodes ${this.searchedNodes} time ${end - start}ms pv `;
+      line += ` depth ${currentDepth} nodes ${this.searchedNodes} time ${end - this.start}ms pv `;
 
       for (let i = 0; i < this.pvLength[0]; ++i) {
         line += moveToString(this.pvTable[0][i]) + " ";
       }
       console.log(line);
 
-      // experimental - if found mate end search early
       const absoluteScore = Math.abs(score);
       if (absoluteScore > MATE_SCORE && absoluteScore < MATE_VALUE) break;
     }
@@ -1556,7 +1588,20 @@ export default class Engine {
     };
   }
 
+  shouldContinueSearch() {
+    return this.time > 0 && Date.now() - this.start >= this.time * 0.55;
+  }
+
+  checkTime() {
+    if (this.time > 0 && Date.now() - this.start >= this.time) {
+      this.stopSearch = true;
+    }
+  }
+
   quiescence(alpha, beta) {
+    if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
+    if ((this.searchedNodes & 2047) === 0) this.checkTime();
+    ++this.searchedNodes;
     const evaluation = this.evaluate();
     if (this.searchPly > MAX_PLY - 1) return evaluation;
     if (evaluation >= beta) {
@@ -1565,7 +1610,6 @@ export default class Engine {
     if (evaluation > alpha) {
       alpha = evaluation;
     }
-    ++this.searchedNodes;
     const moves = this.generateCaptures().sort((a, b) => this.scoreMove(b) - this.scoreMove(a));
     for (let i = 0; i < moves.length; ++i) {
       const move = moves[i];
@@ -1577,7 +1621,9 @@ export default class Engine {
       let score = -this.quiescence(-beta, -alpha);
       --this.searchPly;
       this.takeMove();
-
+      if (this.stopSearch) {
+        return 0;
+      }
       if (score > alpha) {
         alpha = score;
         if (score >= beta) {
@@ -1589,17 +1635,19 @@ export default class Engine {
   }
 
   negamax(alpha, beta, depth, doNullMove, excludedMoves = []) {
+    if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
     let score = 0;
     let hashFlag = HASH_ALPHA;
     let pvNode = beta - alpha > 1;
     let futilityPruning = false;
-    if (this.searchPly > 0 && (score = this.hashTable.read(this.key, alpha, beta, depth, this.searchPly)) !== NO_HASH_ENTRY && !pvNode) {
+    if (this.searchPly > 0 && this.useHashTable &&
+      (score = this.hashTable.read(this.key, alpha, beta, depth, this.searchPly)) !== NO_HASH_ENTRY && !pvNode) {
       return score;
     }
     this.pvLength[this.searchPly] = this.searchPly;
-    if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
     if (depth <= 0) return this.quiescence(alpha, beta);
     if (this.searchPly > MAX_PLY - 1) return this.evaluate();
+    if ((this.searchedNodes & 2047) === 0) this.checkTime();
     ++this.searchedNodes;
 
     // mate distance pruning
@@ -1687,6 +1735,9 @@ export default class Engine {
       }
       --this.searchPly;
       this.takeMove();
+      if (this.stopSearch) {
+        return 0;
+      }
       ++movesSearched;
       if (score > alpha) {
         hashFlag = HASH_EXACT;
@@ -1700,7 +1751,7 @@ export default class Engine {
         }
         this.pvLength[this.searchPly] = this.pvLength[this.searchPly + 1];
         if (score >= beta) {
-          this.hashTable.write(this.key, beta, depth, this.searchPly, HASH_BETA);
+          if (this.useHashTable) this.hashTable.write(this.key, beta, depth, this.searchPly, HASH_BETA);
           if (!isCapture(move)) {
             this.killerMoves[1][this.searchPly] = this.killerMoves[0][this.searchPly];
             this.killerMoves[0][this.searchPly] = move;
@@ -1712,7 +1763,7 @@ export default class Engine {
     if (legalMoves === 0) {
       return inCheck ? -MATE_VALUE + this.searchPly : 0;
     }
-    this.hashTable.write(this.key, alpha, depth, this.searchPly, hashFlag);
+    if (this.useHashTable) this.hashTable.write(this.key, alpha, depth, this.searchPly, hashFlag);
     return alpha;
   }
 
@@ -1856,21 +1907,6 @@ export default class Engine {
     }
     return output;
   }
-}
-
-function magic64ToBitboardCode(array) {
-  let b32 = array.map(x => {
-    let low = Number(x & 0xFFFFFFFFn)
-    let high = Number((x >> 32n) & 0xFFFFFFFFn)
-    return [low, high];
-  });
-
-  let line = "[\n";
-  for (let i = 0; i < 64; i += 4) {
-    line += `[${b32[i][0]}, ${b32[i][1]}],[${b32[i + 1][0]}, ${b32[i + 1][1]}],[${b32[i + 2][0]}, ${b32[i + 2][1]}],[${b32[i + 3][0]}, ${b32[i + 3][1]}],\n`
-  }
-  line += "]";
-  console.log(line);
 }
 
 initLeaperAttacks();
