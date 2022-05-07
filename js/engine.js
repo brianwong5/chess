@@ -1493,12 +1493,27 @@ export default class Engine {
     return nodes;
   }
 
-  multiSearch(depth, lines = 3) {
+  distributeTime(time, lines) {
+    if (time === -1) {
+      return Array(lines).fill(-1);
+    }
+    if (lines === 1) {
+      return [time];
+    }
+    const best = time * 0.8;
+    const rest = Math.floor(time * 0.2 / (lines - 1));
+    const distribution = Array(lines).fill(rest);
+    distribution[0] = best;
+    return distribution;
+  }
+
+  multiSearch(depth, lines = 3, time = -1) {
     const output = [];
     const excludedMoves = [];
+    const timeDistribution = this.distributeTime(time, lines);
     for (let line = 0; line < lines; ++line) {
       console.table(`line ${line + 1}`);
-      const search = this.search(line === 0 ? depth : Math.max(3, depth - 1), excludedMoves);
+      const search = this.search(depth, excludedMoves, timeDistribution[line]);
       if (!search.moveEncoded) break;
       excludedMoves.push(search.moveEncoded);
       output.push(search);
