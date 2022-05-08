@@ -1087,6 +1087,13 @@ export default class Engine {
   }
 
   isRepetition() {
+    for (let i = 0; i < this.historyPly - 1; ++i) {
+      if (this.key === this.history[i].key) return true;
+    }
+    return false;
+  }
+
+  isThreeFoldRepetition() {
     let repetitions = 0;
     for (let i = 0; i < this.historyPly - 1; ++i) {
       if (this.key === this.history[i].key) ++repetitions;
