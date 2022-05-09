@@ -1593,8 +1593,10 @@ export default class Engine {
       })
       if (currentDepth === 1 && this.onlyMove) break;
       const absoluteScore = Math.abs(score);
+      // found mate, no need to continue searching
       if (absoluteScore > MATE_SCORE && absoluteScore < MATE_VALUE) break;
-      if (currentDepth >= 10) {
+      // check if search at low depth agrees with search at high depth
+      if (currentDepth >= 8) {
         const iterationsToCheck = 6;
         const scoreThreshold = 50;
         let count = 0;
