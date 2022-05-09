@@ -1085,6 +1085,7 @@ export default class Engine {
     this.stopSearch = false;
     this.useHashTable = true;
     this.onlyMove = false;
+    this.iterativeSearchResult = [];
   }
 
   isRepetition() {
@@ -1584,16 +1585,28 @@ export default class Engine {
         line += moveToString(this.pvTable[0][i]) + " ";
       }
       console.log(line);
+      this.iterativeSearchResult.push({
+        moveEncoded: this.pvTable[0][0],
+        moveString: moveToString(this.pvTable[0][0]),
+        score,
+        onlyMove: this.onlyMove
+      })
       if (currentDepth === 1 && this.onlyMove) break;
       const absoluteScore = Math.abs(score);
       if (absoluteScore > MATE_SCORE && absoluteScore < MATE_VALUE) break;
+      if (currentDepth >= 10) {
+        const iterationsToCheck = 6;
+        const scoreThreshold = 50;
+        let count = 0;
+        for (let i = currentDepth - 1 - iterationsToCheck; i < currentDepth - 1; ++i) {
+          if (this.iterativeSearchResult[i].moveEncoded !== this.iterativeSearchResult[currentDepth - 1].moveEncoded) break;
+          if (Math.abs(this.iterativeSearchResult[i].score - this.iterativeSearchResult[i + 1].score > scoreThreshold)) break;
+          ++count;
+        }
+        if (count === iterationsToCheck) break;
+      }
     }
-    return {
-      moveEncoded: this.pvTable[0][0],
-      moveString: moveToString(this.pvTable[0][0]),
-      score,
-      onlyMove: this.onlyMove
-    };
+    return this.iterativeSearchResult[this.iterativeSearchResult.length - 1];
   }
 
   shouldContinueSearch() {
@@ -1686,7 +1699,7 @@ export default class Engine {
         }
       }
       // razoring
-      score = staticEval + 125;
+      score = staticEval + 175;
       if (score < beta) {
         if (depth === 1) {
           const newScore = this.quiescence(alpha, beta);
