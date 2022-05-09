@@ -1084,6 +1084,7 @@ export default class Engine {
     this.historyMoves = Array(12).fill().map(() => Array(64).fill(0));
     this.stopSearch = false;
     this.useHashTable = true;
+    this.onlyMove = false;
   }
 
   isRepetition() {
@@ -1529,9 +1530,10 @@ export default class Engine {
     for (let line = 0; line < lines; ++line) {
       console.table(`line ${line + 1}`);
       const search = this.search(depth, excludedMoves, timeDistribution[line], line === 0);
-      if (!search.moveEncoded) break;
+      search.onlyMove = this.onlyMove && line === 0;
       excludedMoves.push(search.moveEncoded);
       output.push(search);
+      if (this.onlyMove) break;
     }
     console.table(output);
     return output;
@@ -1554,7 +1556,6 @@ export default class Engine {
       this.followPv = true;
       score = this.negamax(alpha, beta, currentDepth, true, excludedMoves);
       if (this.stopSearch) {
-        console.log("time is up, ending search early");
         break;
       }
       // we fell outside the window, so try again with a full-width window and same depth
@@ -1579,19 +1580,19 @@ export default class Engine {
         line += `cp ${score}`;
       }
       line += ` depth ${currentDepth} nodes ${this.searchedNodes} time ${end - this.start}ms pv `;
-
       for (let i = 0; i < this.pvLength[0]; ++i) {
         line += moveToString(this.pvTable[0][i]) + " ";
       }
       console.log(line);
-
+      if (currentDepth === 1 && this.onlyMove) break;
       const absoluteScore = Math.abs(score);
       if (absoluteScore > MATE_SCORE && absoluteScore < MATE_VALUE) break;
     }
     return {
       moveEncoded: this.pvTable[0][0],
       moveString: moveToString(this.pvTable[0][0]),
-      score
+      score,
+      onlyMove: this.onlyMove
     };
   }
 
@@ -1601,6 +1602,7 @@ export default class Engine {
 
   checkTime() {
     if (this.time > 0 && Date.now() - this.start >= this.time) {
+      console.log("time is up, ending search early");
       this.stopSearch = true;
     }
   }
@@ -1767,9 +1769,8 @@ export default class Engine {
         }
       }
     }
-    if (legalMoves === 0) {
-      return inCheck ? -MATE_VALUE + this.searchPly : 0;
-    }
+    if (legalMoves === 0) return inCheck ? -MATE_VALUE + this.searchPly : 0;
+    if (this.searchPly === 0 && legalMoves === 1) this.onlyMove = true;
     if (this.useHashTable) this.hashTable.write(this.key, alpha, depth, this.searchPly, hashFlag);
     return alpha;
   }
@@ -1891,7 +1892,6 @@ export default class Engine {
     if (this.castlePermission & CASTLE.WHITE_QUEEN_SIDE) output += "Q";
     if (this.castlePermission & CASTLE.BLACK_KING_SIDE) output += "k";
     if (this.castlePermission & CASTLE.BLACK_QUEEN_SIDE) output += "q";
-    // todo
     output += `\n     Key: ${this.key}`;
     return output;
   }
