@@ -1530,7 +1530,12 @@ export default class Engine {
     const timeDistribution = this.distributeTime(time, lines);
     for (let line = 0; line < lines; ++line) {
       console.table(`line ${line + 1}`);
-      const search = this.search(depth, excludedMoves, timeDistribution[line], line === 0);
+      const options = {
+        excludedMoves,
+        time: timeDistribution[line],
+        useHashTable: line === 0
+      }
+      const search = this.search(depth, options);
       search.onlyMove = this.onlyMove && line === 0;
       excludedMoves.push(search.moveEncoded);
       output.push(search);
@@ -1540,11 +1545,11 @@ export default class Engine {
     return output;
   }
 
-  search(depth, excludedMoves = [], time = -1, useHashTable = true) {
+  search(depth, options = { excludedMoves: [], time: -1, useHashTable: true }) {
     this.start = Date.now();
     this.resetSearch();
-    this.useHashTable = useHashTable;
-    this.time = time;
+    this.useHashTable = options.useHashTable;
+    this.time = options.time;
 
     let alpha = -INFINITY;
     let beta = INFINITY;
@@ -1555,7 +1560,7 @@ export default class Engine {
         break;
       }
       this.followPv = true;
-      score = this.negamax(alpha, beta, currentDepth, true, excludedMoves);
+      score = this.negamax(alpha, beta, currentDepth, true, options.excludedMoves);
       if (this.stopSearch) {
         break;
       }

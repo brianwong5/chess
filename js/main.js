@@ -14,8 +14,6 @@ import ChessGUI from "./gui.js";
     mirror(engine, gui);
   });
   document.getElementById("analyse").addEventListener("click", () => {
-    // search.time = parseInt(document.getElementById("time").value);
-    // search.level = parseInt(document.getElementById("level").value);
     const bestMove = engine.search(8).moveString;
     if (bestMove) {
       document.getElementById("output-best").textContent = bestMove;
