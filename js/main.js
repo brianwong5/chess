@@ -49,6 +49,7 @@ import ChessGUI from "./gui.js";
         }
       }
     }
+    console.log(engine.boardToString());
   }
   function engineMove() {
     const bestMove = engine.search(7);

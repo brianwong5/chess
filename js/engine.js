@@ -1054,7 +1054,7 @@ export default class Engine {
     if (this.enPassant != SQUARE.NONE) key ^= EN_PASSANT_KEYS[this.enPassant];
     key ^= CASTLE_KEYS[this.castlePermission];
     if (this.side === COLOUR.BLACK) key ^= SIDE_KEY;
-    return key;
+    return key >>> 0;
   }
 
   reset() {
@@ -1404,6 +1404,7 @@ export default class Engine {
     }
     this.side ^= 1;
     this.key ^= SIDE_KEY;
+    this.key >>>= 0;
     if (this.isSquareAttacked(getLSB(this.bitboards[(this.side ^ 1) * 6 + PIECE.WHITE_KING]), this.side)) {
       this.takeMove();
       return false;
@@ -1469,6 +1470,7 @@ export default class Engine {
     this.side ^= 1;
     this.key ^= SIDE_KEY;
     if (this.enPassant !== SQUARE.NONE) this.key ^= EN_PASSANT_KEYS[this.enPassant];
+    this.key >>>= 0;
     this.enPassant = SQUARE.NONE;
     this.fiftyMove = 0;
   }
