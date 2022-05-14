@@ -57,7 +57,7 @@ import ChessGUI from "./gui.js";
     }
   }
   function handleMove(move) {
-    const encoded = engine.parseMove(move);
+    const encoded = engine.parseMove(move) || engine.parseMove(move + "q");
     if (engine.makeMove(encoded)) {
       mirror(engine, gui);
       gui.highlight(move.charCodeAt(0) - "a".charCodeAt(0), move[1] - 1);
