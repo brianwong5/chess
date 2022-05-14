@@ -1533,7 +1533,7 @@ export default class Engine {
       const options = {
         excludedMoves,
         time: timeDistribution[line],
-        useHashTable: line === 0
+        hashTable: line === 0
       }
       const search = this.search(depth, options);
       search.onlyMove = this.onlyMove && line === 0;
@@ -1545,10 +1545,10 @@ export default class Engine {
     return output;
   }
 
-  search(depth, options = { excludedMoves: [], time: -1, useHashTable: true }) {
+  search(depth, options = { excludedMoves: [], time: -1, hashTable: true }) {
     this.start = Date.now();
     this.resetSearch();
-    this.useHashTable = options.useHashTable;
+    this.useHashTable = options.hashTable;
     this.time = options.time;
 
     let alpha = -INFINITY;
@@ -1595,8 +1595,8 @@ export default class Engine {
         moveString: moveToString(this.pvTable[0][0]),
         score,
         onlyMove: this.onlyMove
-      })
-      if (currentDepth === 1 && this.onlyMove) break;
+      });
+      if (currentDepth >= 3 && this.onlyMove) break;
       const absoluteScore = Math.abs(score);
       // found mate, no need to continue searching
       if (absoluteScore > MATE_SCORE && absoluteScore < MATE_VALUE) break;

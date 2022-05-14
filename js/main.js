@@ -14,9 +14,11 @@ import ChessGUI from "./gui.js";
     mirror(engine, gui);
   });
   document.getElementById("analyse").addEventListener("click", () => {
-    const bestMove = engine.search(8).moveString;
+    const move = engine.search(8);
+    const bestMove = move.moveString;
     if (bestMove) {
       document.getElementById("output-best").textContent = bestMove;
+      document.getElementById("output-score").textContent = move.score;
     }
   });
   document.getElementById("make-move").addEventListener("click", engineMove);
@@ -27,6 +29,8 @@ import ChessGUI from "./gui.js";
     }
   });
   document.getElementById("new-game").addEventListener("click", () => {
+    document.getElementById("output-best").textContent = "";
+    document.getElementById("output-score").textContent = "";
     engine.parseFen(START_FEN);
     mirror(engine, gui);
   });
@@ -50,6 +54,7 @@ import ChessGUI from "./gui.js";
     const bestMove = engine.search(7);
     if (bestMove.moveEncoded) {
       document.getElementById("output-best").textContent = bestMove.moveString;
+      document.getElementById("output-score").textContent = bestMove.score;
       engine.makeMove(bestMove.moveEncoded);
       mirror(engine, gui);
       gui.highlight(bestMove.moveString.charCodeAt(0) - "a".charCodeAt(0), bestMove.moveString[1] - 1);
