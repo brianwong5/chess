@@ -31,6 +31,7 @@ import ChessGUI from "./gui.js";
   document.getElementById("new-game").addEventListener("click", () => {
     document.getElementById("output-best").textContent = "";
     document.getElementById("output-score").textContent = "";
+    console.clear();
     engine.parseFen(START_FEN);
     mirror(engine, gui);
   });
