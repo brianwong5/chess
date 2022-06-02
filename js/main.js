@@ -14,7 +14,7 @@ import ChessGUI from "./gui.js";
     mirror(engine, gui);
   });
   document.getElementById("analyse").addEventListener("click", () => {
-    const move = engine.search(8);
+    const move = engine.search(document.getElementById("search-depth").value);
     const bestMove = move.moveString;
     if (bestMove) {
       document.getElementById("output-best").textContent = bestMove;
@@ -53,7 +53,7 @@ import ChessGUI from "./gui.js";
     console.log(engine.boardToString());
   }
   function engineMove() {
-    const bestMove = engine.search(7);
+    const bestMove = engine.search(document.getElementById("search-depth").value);
     if (bestMove.moveEncoded) {
       document.getElementById("output-best").textContent = bestMove.moveString;
       document.getElementById("output-score").textContent = bestMove.score;
