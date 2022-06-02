@@ -1083,7 +1083,6 @@ export default class Engine {
     this.killerMoves = Array(2).fill().map(() => Array(MAX_PLY).fill(0));
     this.historyMoves = Array(12).fill().map(() => Array(64).fill(0));
     this.stopSearch = false;
-    this.useHashTable = true;
     this.onlyMove = false;
     this.iterativeSearchResult = [];
   }
@@ -1526,16 +1525,17 @@ export default class Engine {
     return distribution;
   }
 
-  multiSearch(depth, lines = 3, time = -1) {
+  multiSearch(depth, lines = 3, options = { time: -1, avoidDraw: false }) {
     const output = [];
     const excludedMoves = [];
-    const timeDistribution = this.distributeTime(time, lines);
+    const timeDistribution = this.distributeTime(options.time, lines);
     for (let line = 0; line < lines; ++line) {
       console.table(`line ${line + 1}`);
       const options = {
         excludedMoves,
         time: timeDistribution[line],
-        hashTable: line === 0
+        hashTable: line === 0,
+        avoidDraw
       }
       const search = this.search(depth, options);
       search.onlyMove = this.onlyMove && line === 0;
@@ -1547,22 +1547,20 @@ export default class Engine {
     return output;
   }
 
-  search(depth, options = { excludedMoves: [], time: -1, hashTable: true }) {
+  search(depth, options = { excludedMoves: [], time: -1, hashTable: true, avoidDraw: false }) {
     this.start = Date.now();
     this.resetSearch();
-    this.useHashTable = options.hashTable;
-    this.time = options.time;
 
     let alpha = -INFINITY;
     let beta = INFINITY;
     let score = 0;
     for (let currentDepth = 1; currentDepth <= depth; ++currentDepth) {
-      if (this.shouldContinueSearch()) {
-        console.log(`used up > 55% of time (${Date.now() - this.start} of ${this.time}), will not go to next depth`);
+      if (this.shouldContinueSearch(options.time)) {
+        console.log(`used up > 55% of time (${Date.now() - this.start} of ${options.time}), will not go to next depth`);
         break;
       }
       this.followPv = true;
-      score = this.negamax(alpha, beta, currentDepth, true, options.excludedMoves);
+      score = this.negamax(alpha, beta, currentDepth, { doNullMove: true, ...options });
       if (this.stopSearch) {
         break;
       }
@@ -1618,20 +1616,20 @@ export default class Engine {
     return this.iterativeSearchResult[this.iterativeSearchResult.length - 1];
   }
 
-  shouldContinueSearch() {
-    return this.time > 0 && Date.now() - this.start >= this.time * 0.55;
+  shouldContinueSearch(time) {
+    return time > 0 && Date.now() - this.start >= time * 0.55;
   }
 
-  checkTime() {
-    if (this.time > 0 && Date.now() - this.start >= this.time) {
+  checkTime(time) {
+    if (time > 0 && Date.now() - this.start >= time) {
       console.log("time is up, ending search early");
       this.stopSearch = true;
     }
   }
 
-  quiescence(alpha, beta) {
+  quiescence(alpha, beta, options = { time: -1, avoidDraw: false }) {
     if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
-    if ((this.searchedNodes & 2047) === 0) this.checkTime();
+    if ((this.searchedNodes & 2047) === 0) this.checkTime(options.time);
     ++this.searchedNodes;
     const evaluation = this.evaluate();
     if (this.searchPly > MAX_PLY - 1) return evaluation;
@@ -1649,7 +1647,7 @@ export default class Engine {
         --this.searchPly;
         continue;
       }
-      let score = -this.quiescence(-beta, -alpha);
+      let score = -this.quiescence(-beta, -alpha, options);
       --this.searchPly;
       this.takeMove();
       if (this.stopSearch) {
@@ -1665,20 +1663,20 @@ export default class Engine {
     return alpha;
   }
 
-  negamax(alpha, beta, depth, doNullMove, excludedMoves = []) {
+  negamax(alpha, beta, depth, options = { doNullMove: false, excludedMoves: [], time: -1, hashTable: true, avoidDraw: false }) {
     if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
     let score = 0;
     let hashFlag = HASH_ALPHA;
     let pvNode = beta - alpha > 1;
     let futilityPruning = false;
-    if (this.searchPly > 0 && this.useHashTable &&
+    if (this.searchPly > 0 && options.useHashTable &&
       (score = this.hashTable.read(this.key, alpha, beta, depth, this.searchPly)) !== NO_HASH_ENTRY && !pvNode) {
       return score;
     }
     this.pvLength[this.searchPly] = this.searchPly;
-    if (depth <= 0) return this.quiescence(alpha, beta);
+    if (depth <= 0) return this.quiescence(alpha, beta, options);
     if (this.searchPly > MAX_PLY - 1) return this.evaluate();
-    if ((this.searchedNodes & 2047) === 0) this.checkTime();
+    if ((this.searchedNodes & 2047) === 0) this.checkTime(options.time);
     ++this.searchedNodes;
 
     // mate distance pruning
@@ -1696,11 +1694,12 @@ export default class Engine {
         if (staticEval - evalMargin >= beta) return staticEval - evalMargin;
       }
       // null move pruning
-      if (doNullMove && depth > 2 && staticEval >= beta && this.searchPly > 0 &&
+      if (options.doNullMove && depth > 2 && staticEval >= beta && this.searchPly > 0 &&
         (countBits(this.bitboards[this.side * 6 + PIECE.WHITE_ROOK]) > 0 || countBits(this.bitboards[this.side * 6 + PIECE.WHITE_QUEEN]) > 0)) {
         ++this.searchPly;
         this.makeNullMove();
-        score = -this.negamax(-beta, -beta + 1, depth - 1 - 2, false);
+        options.doNullMove = false;
+        score = -this.negamax(-beta, -beta + 1, depth - 1 - 2, options);
         --this.searchPly;
         this.takeNullMove();
         if (score >= beta) {
@@ -1711,12 +1710,12 @@ export default class Engine {
       score = staticEval + 175;
       if (score < beta) {
         if (depth === 1) {
-          const newScore = this.quiescence(alpha, beta);
+          const newScore = this.quiescence(alpha, beta, options);
           return newScore > score ? newScore : score;
         }
         // score += 175;
         // if (score < beta && depth <= 3) {
-        //   const newScore = this.quiescence(alpha, beta);
+        //   const newScore = this.quiescence(alpha, beta, options);
         //   if (newScore < beta) return newScore > score ? newScore : score;
         // }
       }
@@ -1728,7 +1727,7 @@ export default class Engine {
 
     let legalMoves = 0;
     let moves = this.generateMoves();
-    if (this.searchPly === 0) moves = moves.filter(move => !excludedMoves.includes(move));
+    if (this.searchPly === 0) moves = moves.filter(move => !options.excludedMoves.includes(move));
     if (this.followPv) this.enablePvScoring(moves);
     moves.sort((a, b) => this.scoreMove(b) - this.scoreMove(a));
     let movesSearched = 0;
@@ -1741,7 +1740,8 @@ export default class Engine {
       }
       ++legalMoves;
       if (movesSearched === 0) {
-        score = -this.negamax(-beta, -alpha, depth - 1, true);
+        options.doNullMove = true;
+        score = -this.negamax(-beta, -alpha, depth - 1, options);
       } else {
         const moveGivesCheck = this.isSquareAttacked(getLSB(this.bitboards[this.side * 6 + PIECE.WHITE_KING]), this.side ^ 1);
         if (futilityPruning && !inCheck && !moveGivesCheck && !isCapture(move) && getPromotedPiece(move) === PIECE.NONE) {
@@ -1753,14 +1753,17 @@ export default class Engine {
         // late move reduction
         if (movesSearched >= FULL_DEPTH_MOVES && depth >= REDUCTION_LIMIT &&
           !inCheck && !moveGivesCheck && !isCapture(move) && getPromotedPiece(move) === PIECE.NONE) {
-          score = -this.negamax(-alpha - 1, - alpha, depth - 2, true);
+          options.doNullMove = true;
+          score = -this.negamax(-alpha - 1, - alpha, depth - 2, options);
         } else {
           score = alpha + 1
         }
         if (score > alpha) {
-          score = -this.negamax(-alpha - 1, -alpha, depth - 1, true);
+          options.doNullMove = true;
+          score = -this.negamax(-alpha - 1, -alpha, depth - 1, options);
           if (score > alpha && score < beta) {
-            score = -this.negamax(-beta, -alpha, depth - 1, true);
+            options.doNullMove = true;
+            score = -this.negamax(-beta, -alpha, depth - 1, options);
           }
         }
       }
@@ -1782,7 +1785,7 @@ export default class Engine {
         }
         this.pvLength[this.searchPly] = this.pvLength[this.searchPly + 1];
         if (score >= beta) {
-          if (this.useHashTable) this.hashTable.write(this.key, beta, depth, this.searchPly, HASH_BETA);
+          if (options.useHashTable) this.hashTable.write(this.key, beta, depth, this.searchPly, HASH_BETA);
           if (!isCapture(move)) {
             this.killerMoves[1][this.searchPly] = this.killerMoves[0][this.searchPly];
             this.killerMoves[0][this.searchPly] = move;
@@ -1793,7 +1796,7 @@ export default class Engine {
     }
     if (legalMoves === 0) return inCheck ? -MATE_VALUE + this.searchPly : 0;
     if (this.searchPly === 0 && legalMoves === 1) this.onlyMove = true;
-    if (this.useHashTable) this.hashTable.write(this.key, alpha, depth, this.searchPly, hashFlag);
+    if (options.useHashTable) this.hashTable.write(this.key, alpha, depth, this.searchPly, hashFlag);
     return alpha;
   }
 

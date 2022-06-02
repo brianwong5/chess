@@ -250,13 +250,15 @@ function repetition() {
   engine.makeMove(engine.parseMove("b1c3"));
   engine.makeMove(engine.parseMove("b8c6"));
   engine.makeMove(engine.parseMove("c3b1"));
-  engine.makeMove(engine.parseMove("c6b8"));
-  engine.makeMove(engine.parseMove("b1c3"));
-  engine.makeMove(engine.parseMove("b8c6"));
-  engine.makeMove(engine.parseMove("c3b1"));
   assertEquals(false, engine.isRepetition());
   engine.makeMove(engine.parseMove("c6b8"));
   assertEquals(true, engine.isRepetition());
+  engine.makeMove(engine.parseMove("b1c3"));
+  engine.makeMove(engine.parseMove("b8c6"));
+  engine.makeMove(engine.parseMove("c3b1"));
+  assertEquals(false, engine.isThreeFoldRepetition());
+  engine.makeMove(engine.parseMove("c6b8"));
+  assertEquals(true, engine.isThreeFoldRepetition());
 }
 
 for (let square = SQUARE.A1; square <= SQUARE.H8; ++square) {
