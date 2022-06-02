@@ -1628,7 +1628,10 @@ export default class Engine {
   }
 
   quiescence(alpha, beta, options = { time: -1, avoidDraw: false }) {
-    if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
+    if (this.searchPly > 0) {
+      if (this.fiftyMove >= 100 || (!options.avoidDraw && this.isRepetition())) return 0;
+      if (options.avoidDraw && this.isRepetition()) return MATE_SCORE - 10000;
+    }
     if ((this.searchedNodes & 2047) === 0) this.checkTime(options.time);
     ++this.searchedNodes;
     const evaluation = this.evaluate();
@@ -1664,7 +1667,10 @@ export default class Engine {
   }
 
   negamax(alpha, beta, depth, options = { doNullMove: false, excludedMoves: [], time: -1, hashTable: true, avoidDraw: false }) {
-    if (this.searchPly > 0 && (this.fiftyMove >= 100 || this.isRepetition())) return 0;
+    if (this.searchPly > 0) {
+      if (this.fiftyMove >= 100 || (!options.avoidDraw && this.isRepetition())) return 0;
+      if (options.avoidDraw && this.isRepetition()) return MATE_SCORE - 10000;
+    }
     let score = 0;
     let hashFlag = HASH_ALPHA;
     let pvNode = beta - alpha > 1;
