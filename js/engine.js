@@ -1531,13 +1531,13 @@ export default class Engine {
     const timeDistribution = this.distributeTime(options.time, lines);
     for (let line = 0; line < lines; ++line) {
       console.table(`line ${line + 1}`);
-      const options = {
+      const searchOptions = {
         excludedMoves,
         time: timeDistribution[line],
         hashTable: line === 0,
-        avoidDraw
+        avoidDraw: options.avoidDraw
       }
-      const search = this.search(depth, options);
+      const search = this.search(depth, searchOptions);
       search.onlyMove = this.onlyMove && line === 0;
       excludedMoves.push(search.moveEncoded);
       output.push(search);
