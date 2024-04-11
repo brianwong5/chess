@@ -819,7 +819,7 @@ class PestoEval {
         -29, 4, -82, -37, -25, -42, 7, -8,
       ],
       [
-        -19, -13, 1, 17, 16, 7, -37, -26,
+        -9, -13, 1, 17, 16, 7, -37, -26,
         -44, -16, -20, -9, -1, 11, -6, -71,
         -45, -25, -16, -17, 3, 0, -5, -33,
         -36, -26, -12, -1, 9, -7, 6, -23,
@@ -1038,7 +1038,7 @@ export default class Engine {
       default:
         this.evaluation = new SimpleEval();
     }
-    this.reset();
+    this.parseFen(START_FEN);
   }
 
   generateHashKey() {
@@ -1629,8 +1629,8 @@ export default class Engine {
 
   quiescence(alpha, beta, options = { time: -1, avoidDraw: false }) {
     if (this.searchPly > 0) {
-      if (this.fiftyMove >= 100 || (!options.avoidDraw && this.isRepetition())) return 0;
       if (options.avoidDraw && this.isRepetition()) return MATE_SCORE - 10000;
+      if (this.fiftyMove >= 100 || this.isRepetition()) return 0;
     }
     if ((this.searchedNodes & 2047) === 0) this.checkTime(options.time);
     ++this.searchedNodes;
@@ -1675,7 +1675,7 @@ export default class Engine {
     let hashFlag = HASH_ALPHA;
     let pvNode = beta - alpha > 1;
     let futilityPruning = false;
-    if (this.searchPly > 0 && options.useHashTable &&
+    if (this.searchPly > 0 && options.hashTable &&
       (score = this.hashTable.read(this.key, alpha, beta, depth, this.searchPly)) !== NO_HASH_ENTRY && !pvNode) {
       return score;
     }
@@ -1791,7 +1791,7 @@ export default class Engine {
         }
         this.pvLength[this.searchPly] = this.pvLength[this.searchPly + 1];
         if (score >= beta) {
-          if (options.useHashTable) this.hashTable.write(this.key, beta, depth, this.searchPly, HASH_BETA);
+          if (options.hashTable) this.hashTable.write(this.key, beta, depth, this.searchPly, HASH_BETA);
           if (!isCapture(move)) {
             this.killerMoves[1][this.searchPly] = this.killerMoves[0][this.searchPly];
             this.killerMoves[0][this.searchPly] = move;
@@ -1802,7 +1802,7 @@ export default class Engine {
     }
     if (legalMoves === 0) return inCheck ? -MATE_VALUE + this.searchPly : 0;
     if (this.searchPly === 0 && legalMoves === 1) this.onlyMove = true;
-    if (options.useHashTable) this.hashTable.write(this.key, alpha, depth, this.searchPly, hashFlag);
+    if (options.hashTable) this.hashTable.write(this.key, alpha, depth, this.searchPly, hashFlag);
     return alpha;
   }
 
