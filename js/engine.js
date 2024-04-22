@@ -614,173 +614,6 @@ function initEvaluationMasks() {
   }
 }
 
-class BaseCustomEval {
-  constructor() {
-    this.simpleEval = new SimpleEval();
-    this.doubledPawnPenalty = -10;
-    this.isolatedPawnPenalty = -15;
-    this.passedPawnBonus = [0, 10, 30, 50, 75, 100, 150, 200];
-    // this.passedPawnBonus = [0, 5, 10, 20, 35, 60, 100, 200];
-    this.bishopPairBonus = 20;
-    this.semiOpenFileScore = 10;
-    this.openFileScore = 15;
-    this.simpleEval.pieceSquareTables = this.simpleEval.pieceSquareTables.map(() => [
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0
-    ]);
-    // this.simpleEval.kingTable = this.simpleEval.kingTable.map(() => [
-    //   0, 0, 0, 0, 0, 0, 0, 0,
-    //   0, 0, 0, 0, 0, 0, 0, 0,
-    //   0, 0, 0, 0, 0, 0, 0, 0,
-    //   0, 0, 0, 0, 0, 0, 0, 0,
-    //   0, 0, 0, 0, 0, 0, 0, 0,
-    //   0, 0, 0, 0, 0, 0, 0, 0,
-    //   0, 0, 0, 0, 0, 0, 0, 0,
-    //   0, 0, 0, 0, 0, 0, 0, 0
-    // ]);
-  }
-
-  setPawnTable(table) {
-    this.simpleEval.pieceSquareTables[0] = table;
-  }
-
-  setKnightTable(table) {
-    this.simpleEval.pieceSquareTables[1] = table;
-  }
-
-  setBishopTable(table) {
-    this.simpleEval.pieceSquareTables[2] = table;
-  }
-
-  setRookTable(table) {
-    this.simpleEval.pieceSquareTables[3] = table;
-  }
-
-  setQueenTable(table) {
-    this.simpleEval.pieceSquareTables[4] = table;
-  }
-
-  setKingMGTable(table) {
-    this.simpleEval.kingTable[0] = table;
-  }
-
-  setKingEGTable(table) {
-    this.simpleEval.kingTable[1] = table;
-  }
-
-  evaluate(bitboards) {
-    let score = this.simpleEval.evaluate(bitboards);
-    const whitePawns = copyBitboard(bitboards[PIECE.WHITE_PAWN]);
-    while (!isZero(whitePawns)) {
-      const square = getLSB(whitePawns);
-      const pawnsOnFile = countBits(and(bitboards[PIECE.WHITE_PAWN], FILE_MASKS[square]));
-      // doubled pawns
-      if (pawnsOnFile > 1) score += this.doubledPawnPenalty * pawnsOnFile;
-      // isoalted pawns
-      if (isZero(and(bitboards[PIECE.WHITE_PAWN], ISOLATED_MASKS[square]))) score += this.isolatedPawnPenalty;
-      // passed pawns
-      if (isZero(and(bitboards[PIECE.BLACK_PAWN], PASSED_PAWN_MASKS[COLOUR.WHITE][square]))) score += this.passedPawnBonus[squareToRank(square)];
-      popBit(whitePawns, square);
-    }
-    const blackPawns = copyBitboard(bitboards[PIECE.BLACK_PAWN]);
-    while (!isZero(blackPawns)) {
-      const square = getLSB(blackPawns);
-      // doubled pawns
-      const pawnsOnFile = countBits(and(bitboards[PIECE.BLACK_PAWN], FILE_MASKS[square]));
-      if (pawnsOnFile > 1) score -= this.doubledPawnPenalty * pawnsOnFile;
-      // isolated pawns
-      if (isZero(and(bitboards[PIECE.BLACK_PAWN], ISOLATED_MASKS[square]))) score -= this.isolatedPawnPenalty;
-      // passed pawns
-      if (isZero(and(bitboards[PIECE.WHITE_PAWN], PASSED_PAWN_MASKS[COLOUR.BLACK][square]))) score -= this.passedPawnBonus[7 - squareToRank(square)];
-      popBit(blackPawns, square);
-    }
-    const whiteRooks = copyBitboard(bitboards[PIECE.WHITE_ROOK]);
-    while (!isZero(whiteRooks)) {
-      const square = getLSB(whiteRooks);
-      // semi open file
-      if (isZero(and(bitboards[PIECE.WHITE_PAWN], FILE_MASKS[square]))) score += this.semiOpenFileScore;
-      // open file
-      if (isZero(and(or(bitboards[PIECE.WHITE_PAWN], bitboards[PIECE.BLACK_PAWN]), FILE_MASKS[square]))) score += this.openFileScore;
-      popBit(whiteRooks, square);
-    }
-    const blackRooks = copyBitboard(bitboards[PIECE.BLACK_ROOK]);
-    while (!isZero(blackRooks)) {
-      const square = getLSB(blackRooks);
-      // semi open file
-      if (isZero(and(bitboards[PIECE.BLACK_PAWN], FILE_MASKS[square]))) score -= this.semiOpenFileScore;
-      // open file
-      if (isZero(and(or(bitboards[PIECE.WHITE_PAWN], bitboards[PIECE.BLACK_PAWN]), FILE_MASKS[square]))) score -= this.openFileScore;
-      popBit(blackRooks, square);
-    }
-    if (!this.simpleEval.getGamePhase(bitboards)) {
-      const whiteKingSquare = getLSB(bitboards[PIECE.WHITE_KING]);
-      // semi open file
-      if (isZero(and(bitboards[PIECE.WHITE_PAWN], FILE_MASKS[whiteKingSquare]))) score -= this.semiOpenFileScore;
-      // open file
-      if (isZero(and(or(bitboards[PIECE.WHITE_PAWN], bitboards[PIECE.BLACK_PAWN]), FILE_MASKS[whiteKingSquare]))) score -= this.openFileScore;
-      const blackKingSquare = getLSB(bitboards[PIECE.BLACK_KING]);
-      // semi open file
-      if (isZero(and(bitboards[PIECE.BLACK_PAWN], FILE_MASKS[blackKingSquare]))) score += this.semiOpenFileScore;
-      // open file
-      if (isZero(and(or(bitboards[PIECE.WHITE_PAWN], bitboards[PIECE.BLACK_PAWN]), FILE_MASKS[blackKingSquare]))) score += this.openFileScore;
-    }
-    // bishop pair
-    if (countBits(bitboards[PIECE.WHITE_BISHOP]) > 2) score += this.bishopPairBonus;
-    if (countBits(bitboards[PIECE.BLACK_BISHOP]) > 2) score -= this.bishopPairBonus;
-
-    // experimental - penalty for fifty move rule
-    // score = (score * (100 - this.fiftyMove) / 100) << 0;
-    return score;
-  }
-}
-
-class KettleEval {
-  constructor() {
-    this.customEval = new BaseCustomEval();
-    this.customEval.simpleEval
-    this.customEval.setPawnTable([
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 10, 0, 10,
-      0, 0, 0, 0, 0, 0, 10, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0
-    ]);
-    this.customEval.setBishopTable([
-      0, 0, 0, 0, 0, -10, 0, 0,
-      0, 0, 0, 0, 0, 0, 15, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0
-    ]);
-    this.customEval.setKnightTable([
-      0, 0, 0, 0, 0, 0, -10, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 20, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0
-    ]);
-  }
-
-  evaluate(bitboards) {
-    return this.customEval.evaluate(bitboards);
-  }
-}
-
 // https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function
 class PestoEval {
   constructor() {
@@ -819,7 +652,7 @@ class PestoEval {
         -29, 4, -82, -37, -25, -42, 7, -8,
       ],
       [
-        -9, -13, 1, 17, 16, 7, -37, -26,
+        -19, -13, 1, 17, 16, 7, -37, -26,
         -44, -16, -20, -9, -1, 11, -6, -71,
         -45, -25, -16, -17, 3, 0, -5, -33,
         -36, -26, -12, -1, 9, -7, 6, -23,
@@ -1023,7 +856,6 @@ class HashTable {
 export default class Engine {
   static SIMPLE = 0;
   static PESTO = 1;
-  static KETTLE = 2;
   constructor(evaluation = Engine.SIMPLE) {
     switch (evaluation) {
       case Engine.SIMPLE:
@@ -1031,9 +863,6 @@ export default class Engine {
         break;
       case Engine.PESTO:
         this.evaluation = new PestoEval();
-        break;
-      case Engine.KETTLE:
-        this.evaluation = new KettleEval();
         break;
       default:
         this.evaluation = new SimpleEval();
@@ -1122,12 +951,26 @@ export default class Engine {
     return score;
   }
 
-  getnonPawnMaterial() {
+  getNonPawnMaterial() {
     let score = 0;
     for (let piece = PIECE.WHITE_PAWN; piece <= PIECE.BLACK_KING; ++piece) {
       if (!isPawn(piece)) score += countBits(this.bitboards[piece]) * BASIC_MATERIAL_SCORE[piece];
     }
     return score;
+  }
+
+  getTotalPieceCount() {
+    let count = 0;
+    for (let piece = PIECE.WHITE_PAWN; piece <= PIECE.BLACK_KING; ++piece) count += countBits(this.bitboards[piece]);
+    return count;
+  }
+
+  getNonPawnPieceCount() {
+    let count = 0;
+    for (let piece = PIECE.WHITE_PAWN; piece <= PIECE.BLACK_KING; ++piece) {
+      if (!isPawn(piece)) count += countBits(this.bitboards[piece]);
+    }
+    return count;
   }
 
   enablePvScoring(moves) {
